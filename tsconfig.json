@@ -14,7 +14,19 @@
     "lib": [
       "es2018",
       "dom"
-    ]
+    ],
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "paths": {
+      "x-arcgis": [
+        "dist/x-arcgis/x-arcgis",
+        "dist/x-arcgis"
+      ],
+      "@x-arcgis": [
+        "projects/x-arcgis/src"
+      ]
+    }
   },
   "angularCompilerOptions": {
     "fullTemplateTypeCheck": true,

@@ -1,0 +1,18 @@
+@import url('https://js.arcgis.com/4.12/esri/css/main.css');
+
+.esri-view {
+  height: 500px;
+}
+
+.draw-toolbar {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.search-box {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+}

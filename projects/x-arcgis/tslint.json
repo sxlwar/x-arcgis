@@ -1,0 +1,17 @@
+{
+  "extends": "../../tslint.json",
+  "rules": {
+    "directive-selector": [
+      true,
+      "attribute",
+      "xArcgis",
+      "camelCase"
+    ],
+    "component-selector": [
+      true,
+      "element",
+      "x-arcgis",
+      "kebab-case"
+    ]
+  }
+}

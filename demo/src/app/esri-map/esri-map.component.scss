@@ -1,0 +1,24 @@
+@import url('https://js.arcgis.com/4.12/esri/css/main.css');
+
+.esri-view {
+  height: 500px;
+}
+nz-radio-group {
+  i {
+    margin-right: 1em;
+  }
+}
+
+.global-search-item {
+  display: flex;
+}
+
+.global-search-item-desc {
+  flex: auto;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.global-search-item-count {
+  flex: none;
+}

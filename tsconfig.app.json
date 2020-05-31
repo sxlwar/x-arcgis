@@ -2,11 +2,11 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": []
+    "types": ["arcgis-js-api"]
   },
   "files": [
-    "src/main.ts",
-    "src/polyfills.ts"
+    "demo/src/main.ts",
+    "demo/src/polyfills.ts"
   ],
   "include": [
     "src/**/*.d.ts"
