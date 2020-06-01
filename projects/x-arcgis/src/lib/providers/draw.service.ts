@@ -2,7 +2,8 @@ import esri = __esri;
 import { iif, Observable, Subscription } from 'rxjs';
 import { filter, map, switchMap, take, takeUntil, tap } from 'rxjs/operators';
 
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
+import { createCustomElement } from '@angular/elements';
 
 import { Base } from '../base/base';
 import { GeometryType } from '../model';
@@ -18,6 +19,8 @@ export abstract class DrawBase extends Base {
   abstract handleDraw(source: Observable<GeometryType>): Subscription;
 }
 
+type CloseEventHandler = (view: esri.MapView) => void;
+
 @Injectable({ providedIn: 'root' })
 export class DrawService extends DrawBase {
   isModulesLoaded = false;
@@ -26,7 +29,14 @@ export class DrawService extends DrawBase {
 
   private editor: esri.Editor;
 
-  constructor(private storeService: StoreService) {
+  /**
+   * By default, we add a span element to the editor popup in order to exit the draw process
+   */
+  private closeNodeTagName = 'span';
+
+  private closeNodeEventHandler: CloseEventHandler;
+
+  constructor(private storeService: StoreService, private injector: Injector) {
     super();
   }
 
@@ -41,7 +51,29 @@ export class DrawService extends DrawBase {
         switchMap((_) => this.storeService.store.pipe(map((config) => config.esriMapView))),
         takeUntil(this.storeService.destroy)
       )
-      .subscribe((view) => this.addClose(view));
+      .subscribe((view) => this.addCloseElement(view));
+  }
+
+  /**
+   * set the html element that use for close the draw modal;
+   * component: The component that will display in to editor popup, used to exit the draw process;
+   */
+  // tslint: disable-next-line: no-any;
+  setCloseNode(component: any, closeEventHandler: CloseEventHandler = this.closeEditor.bind(this)): void {
+    const CloseElement = createCustomElement(component, { injector: this.injector });
+    const closeNodeTagName = 'close-element';
+    customElements.define(closeNodeTagName, CloseElement);
+
+    this.closeNodeTagName = closeNodeTagName;
+    this.closeNodeEventHandler = closeEventHandler;
+  }
+
+  destroyEditor(view: esri.MapView): void {
+    if (this.editor) {
+      this.editor.destroy();
+      view.ui.remove(this.editor);
+      this.editor = null;
+    }
   }
 
   private loadEditor(type: GeometryType): Observable<esri.Editor> {
@@ -88,24 +120,21 @@ export class DrawService extends DrawBase {
     );
   }
 
-  private destroyEditor(view: esri.MapView) {
-    if (this.editor) {
-      this.editor.destroy();
-      view.ui.remove(this.editor);
-      this.editor = null;
-    }
-  }
-
-  private addClose(view: esri.MapView, closeFn: (view: esri.MapView) => void = this.closeEditor.bind(this)) {
+  private addCloseElement(view: esri.MapView) {
     window.setTimeout(() => {
       const header = document.querySelector('.esri-editor__header');
-      const closeNode = document.createElement('span');
+      const closeNode = document.createElement(this.closeNodeTagName);
 
-      closeNode.innerText = 'x';
-      closeNode.className = 'close-editor';
-      closeNode.style.cssText = 'cursor:pointer;';
-      closeNode.setAttribute('title', '退出编辑');
-      closeNode.onclick = () => closeFn(view);
+      if (this.closeNodeTagName === 'span') {
+        closeNode.innerText = '退出';
+        closeNode.className = 'close-editor';
+        closeNode.style.cssText = 'cursor:pointer;';
+        closeNode.setAttribute('title', '退出编辑');
+      }
+
+      closeNode.addEventListener('click', () => {
+        this.closeNodeEventHandler(view);
+      });
       header.appendChild(closeNode);
     }, 1000);
   }

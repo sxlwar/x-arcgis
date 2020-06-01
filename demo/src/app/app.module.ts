@@ -3,6 +3,7 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NZ_I18N, zh_CN } from 'ng-zorro-antd/i18n';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 
 import { registerLocaleData } from '@angular/common';
@@ -17,12 +18,12 @@ import { XArcgisModule } from '@x-arcgis';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { EsriMapComponent } from './esri-map/esri-map.component';
+import { CloseComponent, EsriMapComponent } from './esri-map/esri-map.component';
 
 registerLocaleData(zh);
 
 @NgModule({
-  declarations: [AppComponent, EsriMapComponent],
+  declarations: [AppComponent, EsriMapComponent, CloseComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
@@ -36,6 +37,7 @@ registerLocaleData(zh);
     NzInputModule,
     NzAutocompleteModule,
     NzButtonModule,
+    NzModalModule,
   ],
   providers: [{ provide: NZ_I18N, useValue: zh_CN }],
   bootstrap: [AppComponent],

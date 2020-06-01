@@ -8,7 +8,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "format": "prettier --config .prettier.config.js projects/x-arcgis/src/* --write" 
+    "format": "prettier --config .prettier.config.js projects/x-arcgis/src/* --write"
   },
   "private": true,
   "dependencies": {
@@ -16,6 +16,7 @@
     "@angular/common": "~9.1.4",
     "@angular/compiler": "~9.1.4",
     "@angular/core": "~9.1.4",
+    "@angular/elements": "^9.1.9",
     "@angular/forms": "~9.1.4",
     "@angular/platform-browser": "~9.1.4",
     "@angular/platform-browser-dynamic": "~9.1.4",

@@ -1,6 +1,12 @@
 import { Observable, Subscription } from 'rxjs';
 import {
-    debounceTime, distinctUntilKeyChanged, filter, map, switchMap, takeUntil, withLatestFrom
+  debounceTime,
+  distinctUntilKeyChanged,
+  filter,
+  map,
+  switchMap,
+  takeUntil,
+  withLatestFrom,
 } from 'rxjs/operators';
 
 import { HttpClient } from '@angular/common/http';
@@ -19,8 +25,6 @@ export abstract class SearchBase extends Base {
 
 @Injectable({ providedIn: 'root' })
 export class SearchService extends SearchBase {
-  modulePath = 'esri/widgets/Search';
-
   Point: esri.PointConstructor;
 
   view: esri.MapView;
@@ -80,6 +84,9 @@ export class SearchService extends SearchBase {
     );
   }
 
+  /**
+   *  Display search result
+   */
   private displayPopup(address: Address, view: esri.MapView) {
     const show = () => {
       const {
@@ -90,7 +97,11 @@ export class SearchService extends SearchBase {
       // TODO： 坐标转换？ 现在显示的和实际位置差异太大
       const [longitude, latitude] = this.coordinateService.bd2wgs(lng, lat);
 
-      this.showPopup(name, new Point({ latitude, longitude }), view);
+      view.popup.open({
+        title: '当前位置',
+        content: name,
+        location: new Point({ latitude, longitude }),
+      });
     };
 
     if (this.Point) {
@@ -103,13 +114,5 @@ export class SearchService extends SearchBase {
         show();
       });
     }
-  }
-
-  private showPopup(address: string | HTMLElement | esri.Widget, point: esri.Point, view: esri.MapView) {
-    view.popup.open({
-      title: +Math.round(point.longitude * 100000) / 100000 + ',' + Math.round(point.latitude * 100000) / 100000,
-      content: address,
-      location: point,
-    });
   }
 }

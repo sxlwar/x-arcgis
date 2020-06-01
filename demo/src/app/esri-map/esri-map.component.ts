@@ -1,9 +1,27 @@
+import { NzModalService } from 'ng-zorro-antd/modal';
 import { iif, Observable, of, Subject } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { Address, SearchService } from '@x-arcgis';
+import { Address, DrawService, SearchService } from '@x-arcgis';
+
+@Component({
+  selector: 'close-icon',
+  template: '<i nz-icon nzType="close" nzTheme="outline" (click)="onClick()"></i>',
+  styles: [
+    `
+      :host {
+        cursor: pointer;
+      }
+    `,
+  ],
+})
+export class CloseComponent {
+  onClick() {
+    console.log('close icon clicked');
+  }
+}
 
 @Component({
   selector: 'app-esri-map',
@@ -21,10 +39,21 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   constructor(
     private searchService: SearchService,
+    private drawService: DrawService,
+    private modalService: NzModalService
   ) {}
 
   ngOnInit() {
     this.listOfOption = this.searchService.getFuzzyMatchList(this.search.valueChanges as Observable<string>);
+    this.drawService.setCloseNode(CloseComponent, (view) => {
+      this.modalService.confirm({
+        nzTitle: '<i>信息提示?</i>',
+        nzContent: '<b>确定要退出编辑吗？</b>',
+        nzOnOk: () => {
+          this.drawService.destroyEditor(view);
+        },
+      });
+    });
   }
 
   ngOnDestroy() {}
