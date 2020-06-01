@@ -1,7 +1,6 @@
-<x-arcgis-map [onSearch]="search$.asObservable()">
+<x-arcgis-map [onSearch]="search$.asObservable()" [onDraw]="draw.valueChanges">
   <nz-radio-group
-    [(ngModel)]="geomType"
-    (ngModelChange)="switchGeom()"
+    [formControl]="draw"
     [nzSize]="'default'"
     [nzButtonStyle]="'solid'"
     x-arcgis-draw-toolbar

@@ -3,7 +3,7 @@ import { map, take } from 'rxjs/operators';
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { Address, XArcgisSearchService } from '@x-arcgis';
+import { Address, SearchService } from '@x-arcgis';
 
 @Component({
   selector: 'app-esri-map',
@@ -11,27 +11,23 @@ import { Address, XArcgisSearchService } from '@x-arcgis';
   styleUrls: ['./esri-map.component.scss'],
 })
 export class EsriMapComponent implements OnInit, OnDestroy {
-  geomType: any = '';
-
   listOfOption: Observable<Address[]>;
 
   search: FormControl = new FormControl('');
 
+  draw: FormControl = new FormControl('');
+
   search$: Subject<Address> = new Subject();
 
-  constructor(private searchService: XArcgisSearchService) {}
+  constructor(
+    private searchService: SearchService,
+  ) {}
 
   ngOnInit() {
-    this.listOfOption = this.searchService.search(this.search.valueChanges as Observable<string>);
+    this.listOfOption = this.searchService.getFuzzyMatchList(this.search.valueChanges as Observable<string>);
   }
 
   ngOnDestroy() {}
-
-  switchGeom() {
-    if (this.geomType != '') {
-      // this.handleMapEditor();
-    }
-  }
 
   handleSearch(option: Address) {
     iif(

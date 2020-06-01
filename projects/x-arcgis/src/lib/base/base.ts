@@ -2,6 +2,15 @@ import esriLoader from 'esri-loader';
 import { from, Observable } from 'rxjs';
 
 export abstract class Base {
+  protected readonly layerIDSuffix = 'layer';
+
+  /**
+   * indicates wether the modules required in specific service has been loaded;
+   */
+  abstract isModulesLoaded: boolean;
+
+  baseId = Math.random();
+
   loadModules = esriLoader.loadModules;
 
   loadModulesObs<T>(modules: string[]): Observable<[T]>;

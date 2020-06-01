@@ -37,7 +37,7 @@ export class BasemapService extends Basemap {
 
   WebTileLayer: esri.WebTileLayerConstructor;
 
-  private isBaseModulesLoaded = false;
+  isModulesLoaded = false;
 
   getBasemap(type: BasemapType, publisher: BasemapPublisher) {
     const basemap = () => {
@@ -55,7 +55,7 @@ export class BasemapService extends Basemap {
       }
     };
 
-    return this.isBaseModulesLoaded ? basemap() : this.loadBaseModules().pipe(switchMap(() => basemap()));
+    return this.isModulesLoaded ? basemap() : this.loadBaseModules().pipe(switchMap(() => basemap()));
   }
 
   private loadBaseModules() {
@@ -68,7 +68,7 @@ export class BasemapService extends Basemap {
 
         this.Basemap = Basemap;
         this.WebTileLayer = WebTileLayer;
-        this.isBaseModulesLoaded = true;
+        this.isModulesLoaded = true;
       })
     );
   }

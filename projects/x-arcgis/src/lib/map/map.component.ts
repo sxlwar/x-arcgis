@@ -1,13 +1,14 @@
 import { combineLatest, from, Observable } from 'rxjs';
-import { distinctUntilKeyChanged, filter, map, mapTo, switchMap } from 'rxjs/operators';
+import { map, mapTo, switchMap } from 'rxjs/operators';
 
 import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 
-import { Address } from '../model';
+import { Address, GeometryType } from '../model';
+import { DrawService } from '../providers';
 import { BasemapService } from '../providers/basemap.service';
-import { CoordinateService } from '../providers/coordinate.service';
 import { FeatureLayerService } from '../providers/feature-layer.service';
-import { XArcgisSearchService } from '../providers/x-arcgis.search.service';
+import { SearchService } from '../providers/search.service';
+import { StoreService } from '../providers/store.service';
 
 import esri = __esri;
 @Component({
@@ -49,7 +50,17 @@ export class MapComponent implements OnInit {
     return this._initialView;
   }
 
+  mapUnloaded = true;
+
+  /**
+   * the search component will be displayed and search event will be handled if received;
+   */
   @Input() onSearch: Observable<Address>;
+
+  /**
+   * the draw component will be displayed and the draw process will be launched if received;
+   */
+  @Input() onDraw: Observable<GeometryType>;
 
   @ViewChild('mapViewNode') private mapViewEl: ElementRef;
 
@@ -77,20 +88,29 @@ export class MapComponent implements OnInit {
   };
 
   constructor(
-    private searchService: XArcgisSearchService,
+    private searchService: SearchService,
     private basemapService: BasemapService,
     private featureLayerService: FeatureLayerService,
-    private coordinateService: CoordinateService
+    private storeService: StoreService,
+    private drawService: DrawService
   ) {}
 
   ngOnInit() {
     this.initMap();
+
+    if (this.onSearch) {
+      this.searchService.handleSearch(this.onSearch);
+    }
+
+    if (this.onDraw) {
+      this.drawService.handleDraw(this.onDraw);
+    }
   }
 
   ngOnDestroy() {
     if (this._view) {
-      // destroy the map view
       this._view.container = null;
+      this.storeService.destroy.next(true);
     }
   }
 
@@ -110,41 +130,25 @@ export class MapComponent implements OnInit {
         container: this.mapViewEl.nativeElement,
       });
 
-      return { view, map };
+      return { esriMapView: view, esriMap: map };
     })
-      .pipe(switchMap(({ view, map }) => from(view.when()).pipe(mapTo({ view, map }))))
+      .pipe(
+        switchMap(({ esriMap, esriMapView }) => from(esriMapView.when()).pipe(mapTo({ esriMap, esriMapView }))),
+        switchMap(({ esriMap, esriMapView }) =>
+          this.featureLayerService
+            .addBaseFeatureLayer(esriMap)
+            .pipe(map((featureLayers) => ({ esriMap, esriMapView, featureLayers })))
+        )
+      )
       .subscribe(
-        ({ view, map }) => {
-          // this.searchService.addSearch(view);
-          this._view = view;
-          this.featureLayerService.addBaseFeatureLayer(map);
+        ({ esriMap, esriMapView, featureLayers }) => {
+          this._view = esriMapView;
+          this.mapUnloaded = false;
           this.mapLoadedEvent.emit(true); // emit map loaded event;
-          this.handleSearch(view);
+          this.storeService.store.next({ esriMap, esriMapView });
         },
         (err) => console.warn(err),
         () => console.log('is complete')
       );
-  }
-
-  private handleSearch(esriMapView: esri.MapView): void {
-    if (this.onSearch) {
-      this.onSearch
-        .pipe(
-          filter((v) => !!v),
-          distinctUntilKeyChanged('location'),
-          map((address) => {
-            const { location } = address;
-
-            return { center: this.coordinateService.bd2wgs(location.lng, location.lat), address };
-          })
-        )
-        .subscribe((option) => {
-          const { center, address } = option;
-
-          esriMapView.goTo({ zoom: 16, center });
-
-          this.searchService.displayPopup(address, esriMapView);
-        });
-    }
   }
 }

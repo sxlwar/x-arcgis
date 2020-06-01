@@ -1,9 +1,9 @@
 <div #mapViewNode></div>
 
-<div class="draw-toolbar">
+<div *ngIf="!!onDraw" [hidden]="mapUnloaded" class="draw-toolbar">
   <ng-content select="[x-arcgis-draw-toolbar]"></ng-content>
 </div>
 
-<div class="search-box">
+<div *ngIf="!!onSearch" [hidden]="mapUnloaded" class="search-box">
   <ng-content select="[x-arcgis-searchbox]"></ng-content>
 </div>
