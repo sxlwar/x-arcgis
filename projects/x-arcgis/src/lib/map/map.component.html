@@ -7,3 +7,13 @@
 <div *ngIf="!!onSearch" [hidden]="mapUnloaded" class="search-box">
   <ng-content select="[x-arcgis-searchbox]"></ng-content>
 </div>
+
+<button
+  *ngIf="showSceneBtn"
+  (click)="switchView()"
+  title="视图切换"
+  type="button"
+  class="esri-component esri-widget--button esri-widget esri-interactive scene-switch-btn"
+>
+  {{ sceneType === '2D' ? '3D' : '2D' }}
+</button>

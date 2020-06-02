@@ -1,8 +1,18 @@
 import esriLoader from 'esri-loader';
 import { from, Observable } from 'rxjs';
 
+import esri = __esri;
+
 export abstract class Base {
   protected readonly layerIDSuffix = 'layer';
+
+  protected readonly host = 'cloud.gisnet.cn';
+
+  protected readonly api = `http://${this.host}:8585/Rest/api`;
+
+  protected readonly arcgisJsApiUrl = 'http://xinanyun.gisnet.cn/arcgis_js_v415_api/arcgis_js_api/library/4.15/';
+
+  protected readonly tk = 'b24f842759c479d657913702c3684369';
 
   /**
    * indicates wether the modules required in specific service has been loaded;
@@ -20,4 +30,8 @@ export abstract class Base {
   loadModulesObs(modules: string[]): Observable<any[]> {
     return from(this.loadModules(modules));
   }
+}
+
+export interface MapBase {
+  loadMap(...params: any[]): Observable<any>;
 }

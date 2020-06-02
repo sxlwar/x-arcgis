@@ -4,3 +4,6 @@ export * from './feature-layer.service';
 export * from './search.service';
 export * from './draw.service';
 export * from './store.service';
+export * from './map2d.service';
+export * from './map3d.service';
+export * from './config.service';

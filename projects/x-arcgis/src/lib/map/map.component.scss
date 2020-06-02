@@ -1,18 +1,40 @@
 @import url('https://js.arcgis.com/4.12/esri/css/main.css');
 
+$left-space: 20px;
+$right-space: 20px;
+$top-space: 15px;
+$bottom-space: 15px;
+
+:host {
+  position: relative;
+  display: block;
+}
+
 .esri-view {
   height: 500px;
 }
 
 .draw-toolbar {
   position: absolute;
-  top: 15px;
+  top: $top-space;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .search-box {
   position: absolute;
-  top: 15px;
-  right: 20px;
+  top: $top-space;
+  right: $right-space;
+}
+
+.scene-switch-btn {
+  position: absolute;
+  right: $right-space;
+  bottom: $bottom-space;
+  border: 1px solid #cccccc;
+  border-radius: 2px;
+  :focus {
+    outline: none;
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 1px 2px;
+  }
 }

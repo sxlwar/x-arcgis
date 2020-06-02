@@ -10,18 +10,15 @@ export type BasemapType = 'vector' | 'imagery' | 'streets' | 'streets-satellite'
 
 export type BasemapPublisher = 'google' | 'bing' | 'mapbox' | 'tianditu';
 
+export interface BaseMapConfig {
+  type: BasemapType;
+  publisher: BasemapPublisher;
+}
+
 /**
  * abstract class must be extended
  */
 export abstract class Basemap extends Base {
-  protected host = 'cloud.gisnet.cn';
-
-  protected api = `http://${this.host}:8585/Rest/api`;
-
-  protected arcgisJsApiUrl = 'http://xinanyun.gisnet.cn/arcgis_js_v415_api/arcgis_js_api/library/4.15/';
-
-  protected tk = 'b24f842759c479d657913702c3684369';
-
   abstract getBasemap(
     type: BasemapType,
     publisher: BasemapPublisher
