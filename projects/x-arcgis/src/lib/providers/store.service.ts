@@ -5,8 +5,10 @@ import { Injectable } from '@angular/core';
 import esri = __esri;
 
 export interface Store {
-  esriMap: esri.Map;
-  esriMapView: esri.MapView;
+  esriMap?: esri.Map;
+  esriMapView?: esri.MapView;
+  esriSceneView?: esri.SceneView;
+  esriWebScene?: esri.WebScene;
 }
 
 @Injectable({ providedIn: 'root' })

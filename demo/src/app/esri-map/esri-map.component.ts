@@ -4,8 +4,9 @@ import { map, take } from 'rxjs/operators';
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { Address, DrawService, SearchService } from '@x-arcgis';
+import { Address, DrawService, SearchService, WidgetService, XArcgisWidgets } from '@x-arcgis';
 
+import esri = __esri;
 @Component({
   selector: 'close-icon',
   template: '<i nz-icon nzType="close" nzTheme="outline" (click)="onClick()"></i>',
@@ -40,11 +41,13 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   constructor(
     private searchService: SearchService,
     private drawService: DrawService,
-    private modalService: NzModalService
+    private widgetService: WidgetService,
+    private modalService: NzModalService,
   ) {}
 
   ngOnInit() {
     this.listOfOption = this.searchService.getFuzzyMatchList(this.search.valueChanges as Observable<string>);
+
     this.drawService.setCloseNode(CloseComponent, (view) => {
       this.modalService.confirm({
         nzTitle: '<i>信息提示?</i>',
@@ -57,6 +60,18 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {}
+
+  addWidget(view: esri.MapView | esri.SceneView) {
+    this.widgetService
+      .getWidgets<esri.HomeConstructor>([XArcgisWidgets.HOME])
+      .subscribe(([Home]) => {
+        const homeWidget = new Home({ view });
+
+        view.ui.add(homeWidget);
+
+        view.ui.move(['zoom', homeWidget], 'top-left');
+      });
+  }
 
   handleSearch(option: Address) {
     iif(

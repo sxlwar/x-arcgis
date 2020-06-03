@@ -1,4 +1,4 @@
-<x-arcgis-map [onSearch]="search$.asObservable()" [onDraw]="draw.valueChanges">
+<x-arcgis-map [onSearch]="search$.asObservable()" [onDraw]="draw.valueChanges" (mapLoaded)="addWidget($event)">
   <nz-radio-group
     [formControl]="draw"
     [nzSize]="'default'"

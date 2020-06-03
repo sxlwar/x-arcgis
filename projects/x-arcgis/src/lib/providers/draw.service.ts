@@ -1,14 +1,16 @@
-import esri = __esri;
 import { iif, Observable, Subscription } from 'rxjs';
 import { filter, map, switchMap, take, takeUntil, tap } from 'rxjs/operators';
 
-import { Injectable, Injector } from '@angular/core';
+import { Injectable, Injector, OnDestroy, Type } from '@angular/core';
 import { createCustomElement } from '@angular/elements';
+import { WidgetService } from '@x-arcgis';
 
 import { Base } from '../base/base';
-import { GeometryType } from '../model';
+import { GeometryType, IWebComponents } from '../model';
 import { StoreService } from './store.service';
+import { XArcgisWidgets } from './widget.service';
 
+import esri = __esri;
 export enum GeometryTypeToDes {
   'point' = '点标注',
   'polyline' = '线标注',
@@ -22,7 +24,7 @@ export abstract class DrawBase extends Base {
 type CloseEventHandler = (view: esri.MapView) => void;
 
 @Injectable({ providedIn: 'root' })
-export class DrawService extends DrawBase {
+export class DrawService extends DrawBase implements OnDestroy {
   isModulesLoaded = false;
 
   private Editor: esri.EditorConstructor;
@@ -34,9 +36,9 @@ export class DrawService extends DrawBase {
    */
   private closeNodeTagName = 'span';
 
-  private closeNodeEventHandler: CloseEventHandler;
+  private webComponents: IWebComponents[] = [];
 
-  constructor(private storeService: StoreService, private injector: Injector) {
+  constructor(private storeService: StoreService, private widgetService: WidgetService, private injector: Injector) {
     super();
   }
 
@@ -59,16 +61,22 @@ export class DrawService extends DrawBase {
    * component: The component that will display in to editor popup, used to exit the draw process;
    */
   // tslint: disable-next-line: no-any;
-  setCloseNode(component: any, closeEventHandler: CloseEventHandler = this.closeEditor.bind(this)): void {
+  setCloseNode(
+    component: Type<any>,
+    closeEventHandler: CloseEventHandler = this.closeEditor.bind(this),
+    closeNodeTagName = 'close-element'
+  ): void {
     const CloseElement = createCustomElement(component, { injector: this.injector });
-    const closeNodeTagName = 'close-element';
+
     customElements.define(closeNodeTagName, CloseElement);
 
+    const node = document.createElement(closeNodeTagName);
+
     this.closeNodeTagName = closeNodeTagName;
-    this.closeNodeEventHandler = closeEventHandler;
+    this.webComponents.push({ tagName: closeNodeTagName, node, listener: closeEventHandler });
   }
 
-  destroyEditor(view: esri.MapView): void {
+  destroyEditor(view: esri.MapView | esri.SceneView): void {
     if (this.editor) {
       this.editor.destroy();
       view.ui.remove(this.editor);
@@ -80,28 +88,32 @@ export class DrawService extends DrawBase {
     return iif(
       () => this.isModulesLoaded,
       this.createEditor(type),
-      this.loadModulesObs<esri.EditorConstructor>(['esri/widgets/Editor']).pipe(
-        switchMap((modules) => {
-          const [EsriEditor] = modules;
+      this.widgetService
+        .getWidgets<esri.EditorConstructor>([XArcgisWidgets.EDITOR])
+        .pipe(
+          switchMap((modules) => {
+            const [EsriEditor] = modules;
 
-          this.Editor = EsriEditor;
-          return this.createEditor(type);
-        }),
-        tap(() => (this.isModulesLoaded = true))
-      )
+            this.Editor = EsriEditor;
+            return this.createEditor(type);
+          }),
+          tap(() => (this.isModulesLoaded = true))
+        )
     );
   }
 
   private createEditor(currentGeometryType: GeometryType): Observable<esri.Editor> {
     return this.storeService.store.pipe(
       take(1),
-      map(({ esriMapView, esriMap }) => {
-        this.destroyEditor(esriMapView);
+      map(({ esriMapView, esriMap, esriSceneView, esriWebScene }) => {
+        const view = esriMapView || esriSceneView;
+        const iMap = esriMap || esriWebScene;
+        this.destroyEditor(view);
 
         const { Editor } = this;
-        const layerInfos = this.getLayInfos(esriMap, currentGeometryType);
+        const layerInfos = this.getLayInfos(iMap, currentGeometryType);
         const editor = new Editor({
-          view: esriMapView,
+          view,
           layerInfos,
           label: 'editor',
           supportingWidgetDefaults: {
@@ -113,7 +125,7 @@ export class DrawService extends DrawBase {
         });
 
         this.editor = editor;
-        esriMapView.ui.add(editor, 'top-left');
+        view.ui.add(editor, 'top-left');
 
         return editor;
       })
@@ -123,19 +135,41 @@ export class DrawService extends DrawBase {
   private addCloseElement(view: esri.MapView) {
     window.setTimeout(() => {
       const header = document.querySelector('.esri-editor__header');
-      const closeNode = document.createElement(this.closeNodeTagName);
 
-      if (this.closeNodeTagName === 'span') {
-        closeNode.innerText = '退出';
-        closeNode.className = 'close-editor';
-        closeNode.style.cssText = 'cursor:pointer;';
-        closeNode.setAttribute('title', '退出编辑');
+      if (!header) {
+        return;
       }
 
-      closeNode.addEventListener('click', () => {
-        this.closeNodeEventHandler(view);
-      });
-      header.appendChild(closeNode);
+      const appended = header.querySelector(this.closeNodeTagName);
+      let node = null;
+
+      if (!!appended) {
+        return;
+      }
+
+      if (this.closeNodeTagName === 'span') {
+        const listener = this.closeEditor.bind(this);
+
+        node = document.createElement(this.closeNodeTagName);
+        node.innerText = '退出';
+        node.className = 'close-editor';
+        node.style.cssText = 'cursor:pointer;';
+        node.setAttribute('title', '退出编辑');
+        node.addEventListener('click', listener);
+        this.webComponents.push({ tagName: this.closeNodeTagName, node, listener });
+      } else {
+        const index = this.webComponents.findIndex((item) => (item.tagName = this.closeNodeTagName));
+        const { tagName, listener, node: closeNode } = this.webComponents[index];
+        const listenerWrapper = () => listener(view);
+
+        node = closeNode;
+        // the node element only created once, so we must remove the listener first;
+        node.removeEventListener('click', listener);
+        node.addEventListener('click', listenerWrapper);
+        this.webComponents[index] = { tagName, node, listener: listenerWrapper };
+      }
+
+      header.appendChild(node);
     }, 1000);
   }
 
@@ -175,5 +209,16 @@ export class DrawService extends DrawBase {
       { name: 'floor', label: '楼层' },
       { name: 'comment', label: '备注' },
     ];
+  }
+
+  /**
+   * Release source before service destroy;
+   */
+  ngOnDestroy() {
+    this.webComponents.forEach((item) => {
+      item.node.removeEventListener('click', item.listener);
+    });
+
+    this.webComponents = null;
   }
 }

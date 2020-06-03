@@ -1,7 +1,9 @@
 import { from, Observable } from 'rxjs';
 import { map, mapTo, switchMap } from 'rxjs/operators';
 
-import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import {
+    Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild
+} from '@angular/core';
 
 import { Address, GeometryType, SceneType } from '../model';
 import { BasemapService, ConfigService, DrawService } from '../providers';
@@ -10,6 +12,8 @@ import { Map2dService } from '../providers/map2d.service';
 import { Map3dService } from '../providers/map3d.service';
 import { SearchService } from '../providers/search.service';
 import { StoreService } from '../providers/store.service';
+import { WidgetService } from '../providers/widget.service';
+import { SceneSwitchComponent } from '../widget/scene-switch/scene-switch.component';
 
 import esri = __esri;
 @Component({
@@ -70,7 +74,7 @@ export class MapComponent implements OnInit {
 
   @ViewChild('mapViewNode') private mapViewEl: ElementRef;
 
-  @Output() mapLoadedEvent = new EventEmitter<boolean>();
+  @Output() mapLoaded = new EventEmitter<esri.MapView | esri.SceneView>();
 
   sceneType: SceneType = '2D';
 
@@ -83,7 +87,7 @@ export class MapComponent implements OnInit {
 
   private _center: [number, number] = [113.656723, 34.764252];
 
-  private _view: esri.MapView = null;
+  private _view: esri.MapView | esri.SceneView = null;
 
   private _initialView: esri.MapViewProperties = {
     zoom: this.zoom,
@@ -103,21 +107,14 @@ export class MapComponent implements OnInit {
     private storeService: StoreService,
     private drawService: DrawService,
     private map2dService: Map2dService,
-    private map3dService: Map3dService
+    private map3dService: Map3dService,
+    private widgetService: WidgetService
   ) {}
 
   async ngOnInit() {
     await this.configService.setArcgisConfigs();
 
     this.loadMap();
-
-    if (this.onSearch) {
-      this.searchService.handleSearch(this.onSearch);
-    }
-
-    if (this.onDraw) {
-      this.drawService.handleDraw(this.onDraw);
-    }
   }
 
   ngOnDestroy() {
@@ -134,6 +131,8 @@ export class MapComponent implements OnInit {
   }
 
   private loadMap() {
+    this.mapUnloaded = true;
+
     if (this.sceneType === '2D') {
       this.load2DMap();
     } else {
@@ -161,6 +160,9 @@ export class MapComponent implements OnInit {
 
           sceneView.map = webScene;
           sceneView.container = this.mapViewEl.nativeElement;
+
+          this.setMapLoadedState(sceneView);
+          this.storeService.store.next({ esriSceneView: sceneView, esriWebScene: webScene });
         },
         (error) => console.error(error),
         () => console.log('3D map loaded')
@@ -190,13 +192,32 @@ export class MapComponent implements OnInit {
       )
       .subscribe(
         ({ esriMap, esriMapView }) => {
-          this._view = esriMapView;
-          this.mapUnloaded = false;
-          this.mapLoadedEvent.emit(true); // emit map loaded event;
+          this.setMapLoadedState(esriMapView);
           this.storeService.store.next({ esriMap, esriMapView });
         },
         (err) => console.warn(err),
         () => console.log('2D Map loaded')
       );
+  }
+
+  private setMapLoadedState(view: esri.MapView | esri.SceneView) {
+    this.mapUnloaded = false;
+    this._view = view;
+    this.mapLoaded.emit(view);
+    this.addWidgets(view);
+
+    if (this.onSearch) {
+      this.searchService.handleSearch(this.onSearch);
+    }
+
+    if (this.onDraw) {
+      this.drawService.handleDraw(this.onDraw);
+    }
+  }
+
+  private addWidgets(view: esri.MapView | esri.SceneView): void {
+    if (this.showSceneBtn) {
+      this.widgetService.addSceneSwitchBtn(SceneSwitchComponent, view, this.switchView.bind(this));
+    }
   }
 }

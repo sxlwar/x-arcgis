@@ -7,3 +7,4 @@ export * from './store.service';
 export * from './map2d.service';
 export * from './map3d.service';
 export * from './config.service';
+export * from './widget.service';
