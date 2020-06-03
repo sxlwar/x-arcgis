@@ -6,7 +6,9 @@ import {
 } from '@angular/core';
 
 import { Address, GeometryType, SceneType } from '../model';
-import { BasemapService, ConfigService, DrawService } from '../providers';
+import { BasemapService } from '../providers/basemap.service';
+import { ConfigService } from '../providers/config.service';
+import { DrawService } from '../providers/draw.service';
 import { FeatureLayerService } from '../providers/feature-layer.service';
 import { Map2dService } from '../providers/map2d.service';
 import { Map3dService } from '../providers/map3d.service';

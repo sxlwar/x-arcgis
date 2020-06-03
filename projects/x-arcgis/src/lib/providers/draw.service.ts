@@ -3,12 +3,11 @@ import { filter, map, switchMap, take, takeUntil, tap } from 'rxjs/operators';
 
 import { Injectable, Injector, OnDestroy, Type } from '@angular/core';
 import { createCustomElement } from '@angular/elements';
-import { WidgetService } from '@x-arcgis';
 
 import { Base } from '../base/base';
 import { GeometryType, IWebComponents } from '../model';
 import { StoreService } from './store.service';
-import { XArcgisWidgets } from './widget.service';
+import { WidgetService, XArcgisWidgets } from './widget.service';
 
 import esri = __esri;
 export enum GeometryTypeToDes {
