@@ -17,7 +17,7 @@ export class Map2dService extends Map2dBase implements MapBase {
 
   EsriMapView: esri.MapViewConstructor;
 
-  loadMap(basemapObs: Observable<esri.Basemap>): Observable<esri.Map> {
+  loadMap(basemapObs: Observable<esri.Basemap | string>): Observable<esri.Map> {
     return iif(
       () => this.isModulesLoaded,
       basemapObs.pipe(map((basemap) => new this.EsriMap({ basemap }))),

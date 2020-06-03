@@ -4,26 +4,21 @@ import { map, switchMap, tap } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 
 import { Base } from '../base/base';
+import { availableBaseMaps, BaseMapConfig, BasemapPublisher, BasemapType } from '../model/basemap';
 
 import esri = __esri;
-export type BasemapType = 'vector' | 'imagery' | 'streets' | 'streets-satellite' | 'hybrid';
-
-export type BasemapPublisher = 'google' | 'bing' | 'mapbox' | 'tianditu';
-
-export interface BaseMapConfig {
-  type: BasemapType;
-  publisher: BasemapPublisher;
-}
-
 /**
  * abstract class must be extended
  */
 export abstract class Basemap extends Base {
-  abstract getBasemap(
-    type: BasemapType,
-    publisher: BasemapPublisher
-  ): esri.Basemap | Observable<esri.Basemap> | Promise<esri.Basemap>;
+  abstract getBasemap(config: BaseMapConfig): Observable<esri.Basemap | string>;
+
+  abstract readonly availableBaseMaps: Map<BasemapPublisher, BasemapType[]>;
 }
+
+type LoadedBaseMap = BaseMapConfig & {
+  options: esri.BasemapProperties;
+};
 
 /**
  * Default basemap service;
@@ -36,20 +31,60 @@ export class BasemapService extends Basemap {
 
   isModulesLoaded = false;
 
-  getBasemap(type: BasemapType, publisher: BasemapPublisher) {
+  readonly availableBaseMaps = availableBaseMaps;
+
+  private activeBasemap: esri.Basemap;
+
+  private readonly loadedBaseMaps: LoadedBaseMap[] = [];
+
+  getBasemap(option: BaseMapConfig) {
+    const { type, publisher } = option;
     const basemap = () => {
-      switch (publisher) {
-        case 'google':
-          return this.getGoogleBasemap(type);
-        case 'bing':
-          return this.getBingBasemap(type);
-        case 'mapbox':
-          return this.getMapboxBasemap(type);
-        case 'tianditu':
-          return this.getTiandituBasemap(type);
-        default:
-          return this.getGoogleBasemap(type);
+      const target = this.loadedBaseMaps.find((item) => item.publisher === publisher && item.type === type);
+      const { Basemap } = this;
+
+      if (!!this.activeBasemap) {
+        this.activeBasemap.destroy();
+        this.activeBasemap = null;
       }
+
+      let options: Observable<esri.BasemapProperties | string>;
+
+      if (!!target) {
+        options = of(target.options);
+      } else {
+        switch (publisher) {
+          case 'google':
+            options = this.getGoogleBasemap(type);
+            break;
+          case 'bing':
+            options = this.getBingBasemap(type);
+            break;
+          case 'mapbox':
+            options = this.getMapboxBasemap(type);
+            break;
+          case 'tianditu':
+            options = this.getTiandituBasemap(type);
+            break;
+          case 'osm':
+            options = of('osm');
+            break;
+          case 'esri':
+            options = of('satellite');
+            break;
+          default:
+            options = this.getGoogleBasemap(type);
+        }
+      }
+
+      return options.pipe(
+        map((option) => (typeof option === 'string' ? option : new Basemap(option))),
+        tap((basemap) => {
+          if (typeof basemap !== 'string') {
+            this.activeBasemap = basemap;
+          }
+        })
+      );
     };
 
     return this.isModulesLoaded ? basemap() : this.loadBaseModules().pipe(switchMap(() => basemap()));
@@ -70,8 +105,8 @@ export class BasemapService extends Basemap {
     );
   }
 
-  private getGoogleBasemap(type: BasemapType): Observable<esri.Basemap> {
-    const { WebTileLayer, Basemap, tk } = this;
+  private getGoogleBasemap(type: BasemapType): Observable<esri.BasemapProperties> {
+    const { WebTileLayer, tk } = this;
     let options: esri.BasemapProperties = null;
 
     switch (type) {
@@ -92,6 +127,7 @@ export class BasemapService extends Basemap {
             }),
           ],
           title: '矢量',
+          id: 'google_vector',
         };
         break;
       case 'imagery':
@@ -111,18 +147,19 @@ export class BasemapService extends Basemap {
             }),
           ],
           title: '影像',
+          id: 'google_imagery',
         };
         break;
       default:
+        console.warn(`You may trying to get a basemap that type is ${type} and published by google, but it may be not exist!`)
         options = {};
     }
 
-    return of(new Basemap({ ...options, id: 'basemap' }));
+    this.loadedBaseMaps.push({ publisher: 'google', type, options });
+    return of(options);
   }
 
-  private getBingBasemap(type: BasemapType): Observable<esri.Basemap> {
-    const { Basemap } = this;
-
+  private getBingBasemap(type: BasemapType): Observable<esri.BasemapProperties> {
     return from(this.loadModules(['esri/layers/BingMapsLayer'])).pipe(
       map((module) => {
         const [BingMapsLayer] = module;
@@ -132,39 +169,41 @@ export class BasemapService extends Basemap {
           culture: 'zh-cn',
           region: 'CHN',
         });
-
-        return new Basemap({
+        const options = {
           baseLayers: [bingMapsLayer],
-          id: 'basemap',
-        });
+          id: 'bing_hybrid',
+        };
+
+        this.loadedBaseMaps.push({ publisher: 'bing', type: 'hybrid', options });
+        return options;
       })
     );
   }
 
-  private getMapboxBasemap(type: BasemapType): Observable<esri.Basemap> {
-    const { Basemap, WebTileLayer } = this;
+  private getMapboxBasemap(type: BasemapType): Observable<esri.BasemapProperties> {
+    const { WebTileLayer } = this;
     const access_token = 'pk.eyJ1IjoiamFtZXNnaXMiLCJhIjoiY2swMHBwY2Q0MTNmNzNocHJnY2dxeGYweiJ9.NgyalCxjXiqDAs93ICVH7Q';
     const url = `https://{subDomain}.tiles.mapbox.com/v4/mapbox.${type}/{level}/{col}/{row}.png?access_token=${access_token}`;
     const webTileLayer = new WebTileLayer({
       urlTemplate: url,
       subDomains: ['a', 'b', 'c'],
     });
+    const options = {
+      baseLayers: [webTileLayer],
+      title: 'mapbox_' + type,
+      id: `mapbox_${type}`,
+    };
 
-    return of(
-      new Basemap({
-        baseLayers: [webTileLayer],
-        title: 'mapbox_' + type,
-        id: 'basemap',
-      })
-    );
+    this.loadedBaseMaps.push({ publisher: 'mapbox', type, options });
+    return of(options);
   }
 
-  private getTiandituBasemap(type: BasemapType): Observable<esri.Basemap> {
+  private getTiandituBasemap(type: BasemapType): Observable<esri.BasemapProperties> {
     const { WebTileLayer, Basemap, tk } = this;
     let options: esri.BasemapProperties = null;
 
     switch (type) {
-      case 'vector':
+      case 'vector': {
         options = {
           baseLayers: [
             new WebTileLayer({
@@ -180,9 +219,11 @@ export class BasemapService extends Basemap {
             }),
           ],
           title: '矢量',
+          id: 'tianditu_vector',
         };
         break;
-      case 'imagery':
+      }
+      case 'imagery': {
         options = {
           baseLayers: [
             new WebTileLayer({
@@ -199,17 +240,16 @@ export class BasemapService extends Basemap {
             }),
           ],
           title: '影像',
+          id: 'tianditu_imagery',
         };
         break;
+      }
       default:
+        console.warn(`You may trying to get a basemap that type is ${type} and published by tianditu, but it may be not exist!`)
         options = {};
     }
 
-    return of(
-      new Basemap({
-        ...options,
-        id: 'basemap',
-      })
-    );
+    this.loadedBaseMaps.push({ publisher: 'tianditu', type, options });
+    return of(options);
   }
 }

@@ -23,6 +23,9 @@
         "dist/x-arcgis/x-arcgis",
         "dist/x-arcgis"
       ],
+      "x-arcgis/*":[
+        "dist/x-arcgis/lib/*"
+      ],
       "@x-arcgis": [
         "projects/x-arcgis/src"
       ]

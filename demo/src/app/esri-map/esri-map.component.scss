@@ -1,8 +1,17 @@
 @import url('https://js.arcgis.com/4.12/esri/css/main.css');
 
+:host {
+  display: flex;
+}
+
+x-arcgis-map {
+  flex: 1;
+}
+
 .esri-view {
   height: 500px;
 }
+
 nz-radio-group {
   i {
     margin-right: 1em;
@@ -21,4 +30,63 @@ nz-radio-group {
 
 .global-search-item-count {
   flex: none;
+}
+
+.panel-content-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 300px;
+
+  .list-item {
+    width: 100px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    text-align: center;
+    
+    &:nth-child(2n-1) {
+      margin-right: 10px;
+    }
+
+    img {
+      display: block;
+      width: 100px;
+      height: 68px;
+      border-radius: 2px;
+      object-fit: cover;
+      border: 1px solid transparent;
+    }
+
+    .label {
+      display: block;
+      line-height: 35px;
+      height: 35px;
+    }
+
+    &.active {
+      img {
+        border: 1px solid #20a0ff;
+      }
+
+      .label {
+        color: #20a0ff;
+      }
+    }
+
+    .custom {
+      width: 100px;
+      height: 68px;
+      border: 1px solid #ddd;
+      border-radius: 2px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .icon-plus {
+        font-size: 30px;
+        width: 30px;
+        height: 30px;
+      }
+    }
+  }
 }

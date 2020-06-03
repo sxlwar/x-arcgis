@@ -1,11 +1,12 @@
-import { from, Observable } from 'rxjs';
-import { map, mapTo, switchMap } from 'rxjs/operators';
+import { from, Observable, of, Subject } from 'rxjs';
+import { map, mapTo, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
-    Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild
+    Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild
 } from '@angular/core';
 
 import { Address, GeometryType, SceneType } from '../model';
+import { BaseMapConfig } from '../model/basemap';
 import { BasemapService } from '../providers/basemap.service';
 import { ConfigService } from '../providers/config.service';
 import { DrawService } from '../providers/draw.service';
@@ -24,7 +25,7 @@ import esri = __esri;
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
-export class MapComponent implements OnInit {
+export class MapComponent implements OnInit, OnDestroy {
   @Input()
   set zoom(zoom: number) {
     this._zoom = zoom;
@@ -57,8 +58,6 @@ export class MapComponent implements OnInit {
     return this._initialView;
   }
 
-  mapUnloaded = true;
-
   /**
    * the search component will be displayed and search event will be handled if received;
    */
@@ -74,11 +73,15 @@ export class MapComponent implements OnInit {
    */
   @Input() showSceneBtn = true;
 
+  @Input() basemapObs: Observable<BaseMapConfig>;
+
   @ViewChild('mapViewNode') private mapViewEl: ElementRef;
 
   @Output() mapLoaded = new EventEmitter<esri.MapView | esri.SceneView>();
 
   sceneType: SceneType = '2D';
+
+  mapUnloaded = true;
 
   /**
    * _zoom sets map zoom
@@ -100,6 +103,8 @@ export class MapComponent implements OnInit {
       fillOpacity: 0,
     },
   };
+
+  private destroy$: Subject<boolean> = new Subject();
 
   constructor(
     private configService: ConfigService,
@@ -123,6 +128,7 @@ export class MapComponent implements OnInit {
     if (this._view) {
       this._view.container = null;
       this.storeService.destroy.next(true);
+      this.destroy$.next(true);
     }
   }
 
@@ -135,15 +141,20 @@ export class MapComponent implements OnInit {
   private loadMap() {
     this.mapUnloaded = true;
 
+    if (!this.basemapObs) {
+      this.basemapObs = of({ type: 'imagery', publisher: 'google' });
+    }
+
     if (this.sceneType === '2D') {
-      this.load2DMap();
+      this.basemapObs.pipe(takeUntil(this.destroy$)).subscribe((config) => this.load2DMap(config));
     } else {
+      // 3D map does not support change basemap now;
       this.load3DMap();
     }
   }
 
   private load3DMap() {
-    const basemap = this.basemapService.getBasemap('imagery', 'google');
+    const basemap = this.basemapService.getBasemap({ type: 'imagery', publisher: 'google' });
     const esriMapObs = this.map2dService.loadMap(basemap);
 
     this.map3dService
@@ -171,8 +182,8 @@ export class MapComponent implements OnInit {
       );
   }
 
-  private load2DMap() {
-    const basemap = this.basemapService.getBasemap('imagery', 'google');
+  private load2DMap(config: BaseMapConfig) {
+    const basemap = this.basemapService.getBasemap(config);
 
     this.map2dService
       .loadMap(basemap)
