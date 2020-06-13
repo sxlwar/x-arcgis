@@ -4,14 +4,8 @@ import { map, reduce, switchMap, tap } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 
 import { Base } from '../base/base';
-import { GeometryType } from '../model';
 
 import esri = __esri;
-export interface BaseLayer {
-  id: string;
-  geometryType: GeometryType;
-  index: number;
-}
 
 export abstract class FeatureLayer extends Base {}
 
@@ -23,21 +17,24 @@ export class FeatureLayerService extends FeatureLayer {
 
   private baseLayerUrl = `https://xinanyun.gisnet.cn/server/rest/services/xinan_gis/FeatureServer`;
 
-  private baseLayers: BaseLayer[] = [
+  /**
+   * TODO: 重构至业务层，需要由业务层提供相关配置，在库启动时获取此配置
+   */
+  private baseLayers: esri.FeatureLayerProperties[] = [
     {
       id: `point_${this.layerIDSuffix}`,
       geometryType: 'point',
-      index: 0,
+      url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/sxlwar/FeatureServer',
     },
     {
       id: `polyline_${this.layerIDSuffix}`,
       geometryType: 'polyline',
-      index: 1,
+      url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/lines/FeatureServer',
     },
     {
       id: `polygon_${this.layerIDSuffix}`,
       geometryType: 'polygon',
-      index: 2,
+      url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polygon/FeatureServer',
     },
   ];
 
@@ -66,9 +63,9 @@ export class FeatureLayerService extends FeatureLayer {
       map(
         (item) =>
           new FeatureLayer({
-            url: `${this.baseLayerUrl}/${item.index}`,
+            // url: `${this.baseLayerUrl}/${item.index}`,
+            url: item.url,
             outFields: ['*'],
-            id: item.id,
             geometryType: item.geometryType,
           })
       ),

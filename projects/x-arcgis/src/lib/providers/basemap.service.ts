@@ -151,7 +151,9 @@ export class BasemapService extends Basemap {
         };
         break;
       default:
-        console.warn(`You may trying to get a basemap that type is ${type} and published by google, but it may be not exist!`)
+        console.warn(
+          `You may trying to get a basemap that type is ${type} and published by google, but it may be not exist!`
+        );
         options = {};
     }
 
@@ -245,7 +247,9 @@ export class BasemapService extends Basemap {
         break;
       }
       default:
-        console.warn(`You may trying to get a basemap that type is ${type} and published by tianditu, but it may be not exist!`)
+        console.warn(
+          `You may trying to get a basemap that type is ${type} and published by tianditu, but it may be not exist!`
+        );
         options = {};
     }
 

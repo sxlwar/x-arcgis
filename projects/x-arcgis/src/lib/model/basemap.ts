@@ -1,4 +1,3 @@
-
 export type BasemapType = 'vector' | 'imagery' | 'streets' | 'streets-satellite' | 'hybrid' | 'osm' | 'satellite';
 
 export type BasemapPublisher = 'google' | 'bing' | 'mapbox' | 'tianditu' | 'osm' | 'esri';
@@ -14,5 +13,5 @@ export const availableBaseMaps: Map<BasemapPublisher, BasemapType[]> = new Map([
   ['mapbox', ['streets', 'streets-satellite']],
   ['tianditu', ['imagery', 'vector']],
   ['osm', ['osm']],
-  ['esri', ['satellite']]
- ]);
+  ['esri', ['satellite']],
+]);

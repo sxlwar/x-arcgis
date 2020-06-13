@@ -113,14 +113,14 @@ export class DrawService extends DrawBase implements OnDestroy {
         const layerInfos = this.getLayInfos(iMap, currentGeometryType);
         const editor = new Editor({
           view,
-          layerInfos,
-          label: 'editor',
-          supportingWidgetDefaults: {
-            featureTemplates: {
-              groupBy: (_) => GeometryTypeToDes[currentGeometryType],
-              filterEnabled: true,
-            },
-          },
+          // layerInfos,
+          // label: 'editor',
+          // supportingWidgetDefaults: {
+          //   featureTemplates: {
+          //     groupBy: (_) => GeometryTypeToDes[currentGeometryType],
+          //     filterEnabled: true,
+          //   },
+          // },
         });
 
         this.editor = editor;
