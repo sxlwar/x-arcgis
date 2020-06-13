@@ -2,8 +2,7 @@ import esri = __esri;
 import { from, iif, Observable } from 'rxjs';
 import { filter, map, reduce } from 'rxjs/operators';
 
-import { Injectable, Injector, OnDestroy, Type } from '@angular/core';
-import { createCustomElement } from '@angular/elements';
+import { Injectable, OnDestroy } from '@angular/core';
 
 import { Base } from '../base/base';
 import { IWebComponents } from '../model';
@@ -13,6 +12,7 @@ export abstract class Widget extends Base {}
 export enum XArcgisWidgets {
   HOME = 'esri/widgets/Home',
   EDITOR = 'esri/widgets/Editor',
+  ViewSwitcher = 'x-widgets/ViewSwitcher',
 }
 
 export interface IWidget<T = { new (properties: any): any }> {
@@ -34,7 +34,7 @@ export class WidgetService extends Widget implements OnDestroy {
 
   private widgets: IWidget[] = []; // Widget constructors;
 
-  constructor(private injector: Injector) {
+  constructor() {
     super();
   }
 
@@ -63,31 +63,6 @@ export class WidgetService extends Widget implements OnDestroy {
     );
   }
 
-  /**
-   * Add 2D/3D switch button
-   */
-  addSceneSwitchBtn(
-    component: Type<any>,
-    view: esri.MapView | esri.SceneView,
-    clickHandler: () => void,
-    sceneSwitchNodeTagName = 'scene-switch',
-    position = 'bottom-leading'
-  ): void {
-    let { node } = this.webComponents.find((item) => item.tagName === sceneSwitchNodeTagName) || {};
-
-    if (!node) {
-      const ele = createCustomElement(component, { injector: this.injector });
-
-      customElements.define(sceneSwitchNodeTagName, ele);
-      node = document.createElement(sceneSwitchNodeTagName);
-      node.addEventListener('click', clickHandler);
-      this.webComponents.push({ tagName: sceneSwitchNodeTagName, node, listener: clickHandler });
-    }
-
-    view.ui.add(node);
-    view.ui.move([node], position);
-  }
-
   private isAllWidgetsLoaded(paths: string[]): { isAllLoaded: boolean; unloaded: string[] } {
     const predicate = (path: string) => this.widgets.findIndex((item) => item.path === path) >= 0;
     const isAllLoaded = paths.every(predicate);
@@ -107,7 +82,7 @@ export class WidgetService extends Widget implements OnDestroy {
     this.webComponents.forEach((item) => {
       item.node.removeEventListener('click', item.listener);
     });
-    
+
     this.webComponents = null;
   }
 }

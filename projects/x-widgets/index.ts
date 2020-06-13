@@ -1,0 +1,1 @@
+// nothing else to fix tsconfig.json Error: No inputs were found in config file.

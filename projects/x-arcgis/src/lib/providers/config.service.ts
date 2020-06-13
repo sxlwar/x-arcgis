@@ -1,9 +1,12 @@
-import { loadCss, loadScript } from 'esri-loader';
+
+
+import { loadScript } from 'esri-loader';
 
 import { Injectable } from '@angular/core';
 
 import { Base } from '../base/base';
 
+import esri = __esri;
 export abstract class ConfigBase extends Base {}
 
 @Injectable({ providedIn: 'root' })
@@ -11,13 +14,31 @@ export class ConfigService extends ConfigBase {
   isModulesLoaded = false;
 
   async setArcgisConfigs() {
-    loadCss(`${this.arcgisJsApiUrl}esri/themes/light/main.css`, 'link[rel="icon"]');
-    loadScript({ url: `${this.arcgisJsApiUrl}init.js` });
+    // set dojoConfig at first;
+    this.setCustomWidgets();
 
-    const [esriConfig] = await this.loadModules(['esri/config']);
+    // loadCss(`${this.arcgisJsApiUrl}esri/themes/light/main.css`, 'link[rel="icon"]');
+    // loadScript({ url: `${this.arcgisJsApiUrl}init.js` });
+    loadScript({ url: 'https://js.arcgis.com/4.15/'});
 
-    esriConfig.portalUrl = `https://${this.host}/arcgis`;
+    // const [esriConfig] = await this.loadModules<[esri.config]>(['esri/config']);
+
+    // esriConfig.portalUrl = `https://${this.host}/arcgis`;
 
     this.isModulesLoaded = true;
+  }
+
+  setCustomWidgets(): void {
+    const locationPath = location.pathname.replace(/\/[^\/]+$/, '');
+
+    (window as any).dojoConfig = {
+      packages: [
+        {
+          name: 'x-widgets',
+          // location: locationPath,
+          location: 'http://localhost:4200/assets/x-widgets/src', // just for test purpose, need a server to store the widgets.
+        },
+      ],
+    };
   }
 }

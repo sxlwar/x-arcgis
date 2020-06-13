@@ -5,7 +5,7 @@ import { EsriMapComponent } from './esri-map/esri-map.component';
 
 const routes: Routes = [
   {
-    path: "",
+    path: '',
     component: EsriMapComponent,
   },
 ];

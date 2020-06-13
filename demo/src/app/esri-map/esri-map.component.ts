@@ -8,10 +8,41 @@ import { map, startWith, take } from 'rxjs/operators';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import {
-    Address, BaseMapConfig, DrawService, SearchService, WidgetService, XArcgisWidgets
+    Address, BaseMapConfig, DrawService, SceneType, SearchService, WidgetService, XArcgisWidgets
 } from '@x-arcgis';
 
 import esri = __esri;
+
+/**
+ * Food data with nested structure.
+ * Each node has a name and an optiona list of children.
+ */
+interface FoodNode {
+  id?: number;
+  name: string;
+  children?: FoodNode[];
+}
+
+const TREE_DATA: FoodNode[] = [
+  {
+    name: 'Fruit',
+    children: [{ name: 'Apple' }, { name: 'Banana' }, { name: 'Fruit loops' }],
+  },
+  {
+    name: 'Vegetables',
+    children: [
+      {
+        name: 'Green',
+        children: [{ name: 'Broccoli' }, { name: 'Brussels sprouts' }],
+      },
+      {
+        name: 'Orange',
+        children: [{ name: 'Pumpkins' }, { name: 'Carrots' }],
+      },
+    ],
+  },
+];
+
 @Component({
   selector: 'close-icon',
   template: '<i nz-icon nzType="close" nzTheme="outline" (click)="onClick()"></i>',
@@ -103,9 +134,11 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   activeBaseMap: BaseMap = basemapList[0];
 
-  basemapObs$: Subject<BaseMapConfig>  = new Subject();
+  basemapObs$: Subject<BaseMapConfig> = new Subject();
 
   basemapObs: Observable<BaseMapConfig>;
+
+  sceneType: SceneType = '2D';
 
   constructor(
     private searchService: SearchService,
@@ -137,13 +170,21 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   addWidget(view: esri.MapView | esri.SceneView) {
     this.widgetService
-      .getWidgets<esri.HomeConstructor>([XArcgisWidgets.HOME])
-      .subscribe(([Home]) => {
+      .getWidgets<esri.HomeConstructor | any>([XArcgisWidgets.HOME, XArcgisWidgets.ViewSwitcher])
+      .subscribe(([Home, ViewSwitcher]) => {
         const homeWidget = new Home({ view });
+
+        const viewSwitcherWidget = new ViewSwitcher( { view, type: '2d' });
 
         view.ui.add(homeWidget);
 
-        view.ui.move(['zoom', homeWidget], 'top-left');
+        view.ui.add(viewSwitcherWidget);
+
+        view.ui.move(['zoom', homeWidget, viewSwitcherWidget], 'top-left');
+
+        viewSwitcherWidget.watch('type', (newVal: string) => { 
+          this.sceneType = newVal.toLocaleUpperCase() as SceneType;
+        });
       });
   }
 

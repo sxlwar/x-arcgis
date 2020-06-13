@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "outDir": "../../demo/src/assets/x-widgets/src",
+    "esModuleInterop": true,
+    "module": "amd",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "jsx": "react",
+    "jsxFactory": "tsx",
+    "target": "es5",
+    "experimentalDecorators": true,
+    "preserveConstEnums": true,
+    "moduleResolution": "node",
+    "suppressImplicitAnyIndexErrors": true
+  },
+  "include": ["./src/*", "./src/**/*"],
+  "exclude": ["node_modules"]
+}

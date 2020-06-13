@@ -15,8 +15,6 @@ import { Map2dService } from '../providers/map2d.service';
 import { Map3dService } from '../providers/map3d.service';
 import { SearchService } from '../providers/search.service';
 import { StoreService } from '../providers/store.service';
-import { WidgetService } from '../providers/widget.service';
-import { SceneSwitchComponent } from '../widget/scene-switch/scene-switch.component';
 
 import esri = __esri;
 @Component({
@@ -79,7 +77,18 @@ export class MapComponent implements OnInit, OnDestroy {
 
   @Output() mapLoaded = new EventEmitter<esri.MapView | esri.SceneView>();
 
-  sceneType: SceneType = '2D';
+  @Input() set sceneType(value: SceneType) {
+    if (!!value && value !== this._sceneType) {
+      this._sceneType = value;
+      this.loadMap();
+    }
+  }
+
+  get sceneType(): SceneType {
+    return this._sceneType;
+  }
+
+  private _sceneType: SceneType = '2D';
 
   mapUnloaded = true;
 
@@ -88,7 +97,7 @@ export class MapComponent implements OnInit, OnDestroy {
    * _center sets map center
    * _basemap sets type of map
    */
-  private _zoom = 5;
+  private _zoom = 13;
 
   private _center: [number, number] = [113.656723, 34.764252];
 
@@ -114,8 +123,7 @@ export class MapComponent implements OnInit, OnDestroy {
     private storeService: StoreService,
     private drawService: DrawService,
     private map2dService: Map2dService,
-    private map3dService: Map3dService,
-    private widgetService: WidgetService
+    private map3dService: Map3dService
   ) {}
 
   async ngOnInit() {
@@ -130,12 +138,6 @@ export class MapComponent implements OnInit, OnDestroy {
       this.storeService.destroy.next(true);
       this.destroy$.next(true);
     }
-  }
-
-  switchView() {
-    this.sceneType = this.sceneType === '2D' ? '3D' : '2D';
-
-    this.loadMap();
   }
 
   private loadMap() {
@@ -217,7 +219,6 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapUnloaded = false;
     this._view = view;
     this.mapLoaded.emit(view);
-    this.addWidgets(view);
 
     if (this.onSearch) {
       this.searchService.handleSearch(this.onSearch);
@@ -225,12 +226,6 @@ export class MapComponent implements OnInit, OnDestroy {
 
     if (this.onDraw) {
       this.drawService.handleDraw(this.onDraw);
-    }
-  }
-
-  private addWidgets(view: esri.MapView | esri.SceneView): void {
-    if (this.showSceneBtn) {
-      this.widgetService.addSceneSwitchBtn(SceneSwitchComponent, view, this.switchView.bind(this));
     }
   }
 }

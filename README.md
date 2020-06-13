@@ -4,7 +4,7 @@ This project was generated with [Angular CLI](https://github.com/angular/angular
 
 ## Development server
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+开发环境下运行 `npm run start` 启动项目，此时除了angular的代码相关代码会被监控之外，基于 **jxs** 实现的 widget 代码也会被监控，并在其代码发生更改之后自动编译。编译后的文件默认输出在 [demo/src/assets/x-widgets/src](./demo/src/assets/x-widgets/src) 目录下，同时 .tsx 文件也会被复制到此目录，方便进行调试。
 
 ## Code scaffolding
 

@@ -1,0 +1,42 @@
+:host {
+  display: block;
+  padding: 20px;
+  width: 15%;
+  background-color: rgba(139, 214, 245, 0.33);
+  border-radius: 4px;
+  overflow: scroll;
+}
+
+.x-arcgis-tree-title {
+  font-size: 18px;
+}
+
+.x-arcgis-tree-invisible {
+  display: none;
+}
+
+.x-arcgis-tree {
+  background-color: transparent;
+  ul,
+  li {
+    margin-top: 0;
+    margin-bottom: 0;
+    list-style-type: none;
+  }
+
+  ul {
+    padding-inline-start: 1.5em;
+  }
+}
+
+.x-arcgis-tree-node {
+  display: block;
+}
+
+.x-arcgis-tree-node .x-arcgis-tree-node {
+  padding-left: 20px;
+}
+
+.mat-tree-node {
+  cursor: pointer;
+}
