@@ -8,15 +8,10 @@ $bottom-space: 15px;
 :host {
   position: relative;
   display: flex;
-  height: 500px;
 }
 
 #mapView {
   flex: 1;
-}
-
-.esri-view {
-  height: 100%;
 }
 
 .draw-toolbar {

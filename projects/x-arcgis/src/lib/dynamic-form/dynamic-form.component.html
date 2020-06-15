@@ -1,0 +1,11 @@
+<div *ngIf="!!form">
+  <form [formGroup]="form">
+    <ng-container *ngFor="let field of fields | async">
+      <x-arcgis-dynamic-form-field [field]="field" [form]="form"></x-arcgis-dynamic-form-field>
+    </ng-container>
+
+    <div class="form-row">
+      <button mat-raised-button color="primary"  (click)="onSubmit()"  [disabled]="!form.valid">保存</button>
+    </div>
+  </form>
+</div>

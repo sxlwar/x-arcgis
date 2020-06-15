@@ -1,0 +1,46 @@
+<div [formGroup]="form">
+  <ng-container [ngSwitch]="field.controlType">
+    <mat-form-field *ngSwitchCase="'input'" appearance="outline">
+      <mat-label>{{ field.label }}</mat-label>
+      <input matInput [formControlName]="field.key" [id]="field.key" [type]="field.type" aria-label="x-arcgis-input" />
+    </mat-form-field>
+
+    <mat-form-field *ngSwitchCase="'select'" appearance="outline">
+      <mat-label>{{ field.label }}</mat-label>
+      <mat-select [id]="field.key" [formControlName]="field.key" aria-label="x-arcgis-select">
+        <mat-option *ngFor="let opt of field.options" [value]="opt.value">{{ opt.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngSwitchCase="'textarea'" appearance="outline">
+      <mat-label>{{ field.label }}</mat-label>
+      <textarea
+        matInput
+        [formControlName]="field.key"
+        matTextareaAutosize
+        matAutosizeMaxRows="5"
+        matAutosizeMinRows="2"
+        aria-label="x-arcgis-textarea"
+      ></textarea>
+    </mat-form-field>
+
+    <section *ngSwitchCase="'radio'">
+      <mat-label>{{ field.label }}</mat-label>
+      <mat-radio-group [formControlName]="field.key" aria-label="x-arcgis-radio-group">
+        <mat-radio-button *ngFor="let opt of field.options" [value]="opt.value">{{ opt.label }}</mat-radio-button>
+      </mat-radio-group>
+    </section>
+
+    <section *ngSwitchCase="'checkbox'">
+      <mat-label>{{ field.label }}</mat-label>
+
+      <mat-checkbox
+        *ngFor="let opt of field.options"
+        [value]="opt.value"
+        [checked]="field.value.includes(opt.value)"
+        (change)="onCheckboxValueChanges($event)"
+        >{{ opt.label }}</mat-checkbox
+      >
+    </section>
+  </ng-container>
+</div>

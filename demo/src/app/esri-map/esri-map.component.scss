@@ -2,14 +2,20 @@
 
 :host {
   display: flex;
+  height: 100vh;
 }
 
-x-arcgis-map {
+.x-arcgis-sidenav {
+  display: block;
+  width: 20%;
+}
+
+.x-arcgis-map {
   flex: 1;
 }
 
 .esri-view {
-  height: 500px;
+  height: 100%;
 }
 
 nz-radio-group {

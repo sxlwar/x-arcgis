@@ -8,40 +8,13 @@ import { map, startWith, take } from 'rxjs/operators';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import {
-    Address, BaseMapConfig, DrawService, SceneType, SearchService, WidgetService, XArcgisWidgets
+    Address, BaseMapConfig, DrawService, SceneType, SearchService, WidgetService, XArcgisTreeNode,
+    XArcgisWidgets
 } from '@x-arcgis';
 
+import { MockService } from '../providers/mock.service';
+
 import esri = __esri;
-
-/**
- * Food data with nested structure.
- * Each node has a name and an optiona list of children.
- */
-interface FoodNode {
-  id?: number;
-  name: string;
-  children?: FoodNode[];
-}
-
-const TREE_DATA: FoodNode[] = [
-  {
-    name: 'Fruit',
-    children: [{ name: 'Apple' }, { name: 'Banana' }, { name: 'Fruit loops' }],
-  },
-  {
-    name: 'Vegetables',
-    children: [
-      {
-        name: 'Green',
-        children: [{ name: 'Broccoli' }, { name: 'Brussels sprouts' }],
-      },
-      {
-        name: 'Orange',
-        children: [{ name: 'Pumpkins' }, { name: 'Carrots' }],
-      },
-    ],
-  },
-];
 
 @Component({
   selector: 'close-icon',
@@ -140,14 +113,19 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   sceneType: SceneType = '2D';
 
+  treeSource: Observable<XArcgisTreeNode[]>;
+
   constructor(
     private searchService: SearchService,
     private drawService: DrawService,
     private widgetService: WidgetService,
-    private modalService: NzModalService
+    private modalService: NzModalService,
+    private mockService: MockService,
   ) {}
 
   ngOnInit() {
+    this.treeSource = this.mockService.getTree();
+
     this.basemapObs = this.basemapObs$.asObservable().pipe(startWith(this.activeBaseMap));
 
     this.listOfOption = this.searchService.getFuzzyMatchList(this.search.valueChanges as Observable<string>);
@@ -158,6 +136,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         nzContent: '<b>确定要退出编辑吗？</b>',
         nzOnOk: () => {
           this.drawService.destroyEditor(view);
+          this.draw.setValue(null);
         },
       });
     });
@@ -197,6 +176,10 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         map((options) => options.find((option) => option.name === this.search.value))
       )
     ).subscribe((option) => this.search$.next(option));
+  }
+
+  onSidenavFormSubmit(event: any) {
+    console.log(event);
   }
 
   ngOnDestroy() {}
