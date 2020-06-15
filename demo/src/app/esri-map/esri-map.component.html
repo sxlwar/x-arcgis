@@ -1,4 +1,4 @@
-<div class="panel-content-wrap">
+<!-- <div class="panel-content-wrap">
   <div
     class="list-item"
     *ngFor="let item of basemapList"
@@ -8,7 +8,9 @@
     <img [src]="'assets/images/basemap/' + item.image" alt="" />
     <span class="label">{{ item.label }}</span>
   </div>
-</div>
+</div> -->
+
+<x-arcgis-sidenav [treeSource]="treeSource | async" class="x-arcgis-sidenav" (save)="onSidenavFormSubmit($event)"></x-arcgis-sidenav>
 
 <x-arcgis-map
   [onSearch]="search$.asObservable()"
@@ -16,6 +18,7 @@
   (mapLoaded)="addWidget($event)"
   [basemapObs]="basemapObs"
   [sceneType]="sceneType"
+  class="x-arcgis-map"
 >
   <nz-radio-group [formControl]="draw" [nzSize]="'default'" [nzButtonStyle]="'solid'" x-arcgis-draw-toolbar>
     <label nz-radio-button nzValue="point">

@@ -1,0 +1,7 @@
+<div [hidden]="activeNode" class="x-arcgis-sidenav">
+  <x-arcgis-tree [source]="dataSource"></x-arcgis-tree>
+</div>
+
+<div *ngIf="activeNode" class="x-arcgis-sidenav">
+  <x-arcgis-tree-form></x-arcgis-tree-form>
+</div>
