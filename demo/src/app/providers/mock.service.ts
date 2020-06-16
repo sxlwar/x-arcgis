@@ -101,7 +101,7 @@ const TREE_DATA: XArcgisTreeNode[] = [
         value: '这个办公地址很恶心',
       },
       {
-        label: '自有产权',
+        label: '产权',
         key: 'isOwn',
         controlType: 'radio',
         options: [

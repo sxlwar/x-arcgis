@@ -1,5 +1,4 @@
 <ng-container *ngIf="sidenavService.activeNodeObs | async as node">
-  {{node | json}}
   <header>
     <h4 class="x-arcgis-tree-title">{{ node.name }}</h4>
     <mat-icon (click)="sidenavService.activeNode$.next(null)">close</mat-icon>
