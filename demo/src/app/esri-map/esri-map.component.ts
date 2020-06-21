@@ -8,8 +8,8 @@ import { map, startWith, take } from 'rxjs/operators';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import {
-    Address, BaseMapConfig, DrawService, SceneType, SearchService, WidgetService, XArcgisTreeNode,
-    XArcgisWidgets
+    Address, BaseMapConfig, DrawService, GeometryType, SceneType, SearchService, WidgetService,
+    XArcgisTreeNode, XArcgisWidgets
 } from '@x-arcgis';
 
 import { MockService } from '../providers/mock.service';
@@ -120,7 +120,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     private drawService: DrawService,
     private widgetService: WidgetService,
     private modalService: NzModalService,
-    private mockService: MockService,
+    private mockService: MockService
   ) {}
 
   ngOnInit() {
@@ -153,7 +153,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       .subscribe(([Home, ViewSwitcher]) => {
         const homeWidget = new Home({ view });
 
-        const viewSwitcherWidget = new ViewSwitcher( { view, type: '2d' });
+        const viewSwitcherWidget = new ViewSwitcher({ view, type: '2d' });
 
         view.ui.add(homeWidget);
 
@@ -161,7 +161,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
         view.ui.move(['zoom', homeWidget, viewSwitcherWidget], 'top-left');
 
-        viewSwitcherWidget.watch('type', (newVal: string) => { 
+        viewSwitcherWidget.watch('type', (newVal: string) => {
           this.sceneType = newVal.toLocaleUpperCase() as SceneType;
         });
       });
@@ -180,6 +180,12 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   onSidenavFormSubmit(event: any) {
     console.log(event);
+  }
+
+  onDraw(event: GeometryType): void {
+    if (event !== this.draw.value) {
+      this.draw.setValue(event);
+    }
   }
 
   ngOnDestroy() {}

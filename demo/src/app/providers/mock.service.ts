@@ -6,6 +6,7 @@ import { XArcgisTreeNode } from '@x-arcgis';
 const TREE_DATA: XArcgisTreeNode[] = [
   {
     name: '厂区位置',
+    id: 'factory-location',
     fields: [
       {
         label: '名称',
@@ -55,12 +56,21 @@ const TREE_DATA: XArcgisTreeNode[] = [
     ],
     children: [
       { name: '子公司1' },
-      { name: '子公司2', fields: [{ label: '员工人数', key: 'memberCount', controlType: 'input', type: 'number' }] },
+      {
+        name: '子公司2',
+        fields: [{ label: '员工人数', key: 'memberCount', controlType: 'input', type: 'number' }],
+        graphic: { type: 'point', id: 2 },
+      },
       { name: '公司总部' },
     ],
+    graphic: {
+      id: '11',
+      type: 'polygon',
+    },
   },
   {
     name: '办公楼',
+    id: 'office-building',
     children: [
       {
         name: '1#楼',

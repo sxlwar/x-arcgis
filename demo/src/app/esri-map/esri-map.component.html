@@ -10,14 +10,19 @@
   </div>
 </div> -->
 
-<x-arcgis-sidenav [treeSource]="treeSource | async" class="x-arcgis-sidenav" (save)="onSidenavFormSubmit($event)"></x-arcgis-sidenav>
+<x-arcgis-sidenav
+  [treeSource]="treeSource | async"
+  class="x-arcgis-sidenav"
+  (save)="onSidenavFormSubmit($event)"
+></x-arcgis-sidenav>
 
 <x-arcgis-map
-  [onSearch]="search$.asObservable()"
-  [onDraw]="draw.valueChanges"
+  [searchObs]="search$.asObservable()"
+  [drawObs]="draw.valueChanges"
   (mapLoaded)="addWidget($event)"
   [basemapObs]="basemapObs"
   [sceneType]="sceneType"
+  (drawEvents)="onDraw($event)"
   class="x-arcgis-map"
 >
   <nz-radio-group [formControl]="draw" [nzSize]="'default'" [nzButtonStyle]="'solid'" x-arcgis-draw-toolbar>

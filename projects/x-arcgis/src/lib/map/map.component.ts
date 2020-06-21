@@ -1,5 +1,5 @@
-import { from, Observable, of, Subject } from 'rxjs';
-import { map, mapTo, switchMap, takeUntil } from 'rxjs/operators';
+import { from, iif, merge, Observable, of, Subject } from 'rxjs';
+import { distinctUntilChanged, map, mapTo, switchMap, takeUntil, tap } from 'rxjs/operators';
 
 import {
     Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild
@@ -14,6 +14,7 @@ import { FeatureLayerService } from '../providers/feature-layer.service';
 import { Map2dService } from '../providers/map2d.service';
 import { Map3dService } from '../providers/map3d.service';
 import { SearchService } from '../providers/search.service';
+import { SidenavService } from '../providers/sidenav.service';
 import { StoreService } from '../providers/store.service';
 
 import esri = __esri;
@@ -59,12 +60,12 @@ export class MapComponent implements OnInit, OnDestroy {
   /**
    * the search component will be displayed and search event will be handled if received;
    */
-  @Input() onSearch: Observable<Address>;
+  @Input() searchObs: Observable<Address>;
 
   /**
    * the draw component will be displayed and the draw process will be launched if received;
    */
-  @Input() onDraw: Observable<GeometryType>;
+  @Input() drawObs: Observable<GeometryType>;
 
   /**
    * Show 2D/3D switch button;
@@ -87,6 +88,8 @@ export class MapComponent implements OnInit, OnDestroy {
   get sceneType(): SceneType {
     return this._sceneType;
   }
+
+  @Output() drawEvents: EventEmitter<GeometryType> = new EventEmitter();
 
   private _sceneType: SceneType = '2D';
 
@@ -123,7 +126,8 @@ export class MapComponent implements OnInit, OnDestroy {
     private storeService: StoreService,
     private drawService: DrawService,
     private map2dService: Map2dService,
-    private map3dService: Map3dService
+    private map3dService: Map3dService,
+    private sidenavServer: SidenavService
   ) {}
 
   async ngOnInit() {
@@ -206,8 +210,8 @@ export class MapComponent implements OnInit, OnDestroy {
         )
       )
       .subscribe(
-        ({ esriMap, esriMapView }) => {
-          this.setMapLoadedState(esriMapView);
+        ({ esriMap, esriMapView, featureLayers }) => {
+          this.setMapLoadedState(esriMapView, featureLayers);
           this.storeService.store.next({ esriMap, esriMapView });
         },
         (err) => console.warn(err),
@@ -215,17 +219,32 @@ export class MapComponent implements OnInit, OnDestroy {
       );
   }
 
-  private setMapLoadedState(view: esri.MapView | esri.SceneView) {
+  private setMapLoadedState(view: esri.MapView | esri.SceneView, layers?: esri.FeatureLayer[]) {
     this.mapUnloaded = false;
     this._view = view;
     this.mapLoaded.emit(view);
 
-    if (this.onSearch) {
-      this.searchService.handleSearch(this.onSearch);
+    if (this.searchObs) {
+      this.searchService.handleSearch(this.searchObs);
     }
 
-    if (this.onDraw) {
-      this.drawService.handleDraw(this.onDraw);
-    }
+    this.drawService.handleDraw(this.getDrawEvents());
+  }
+
+  private getDrawEvents(): Observable<GeometryType> {
+    return merge(
+      iif(() => !!this.drawObs, this.drawObs, of(null)),
+      this.sidenavServer.activeNodeObs.pipe(
+        map((node) => {
+          const { graphic } = node || {};
+          const { type } = graphic || {};
+
+          return !!type ? type : null;
+        })
+      )
+    ).pipe(
+      distinctUntilChanged(),
+      tap((type) => this.drawEvents.next(type))
+    );
   }
 }

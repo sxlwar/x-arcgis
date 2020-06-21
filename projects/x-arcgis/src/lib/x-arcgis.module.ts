@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTreeModule } from '@angular/material/tree';
 
 import { DynamicFormFieldComponent } from './dynamic-form-field/dynamic-form-field.component';
@@ -41,6 +42,7 @@ import { TreeComponent } from './tree/tree.component';
     MatInputModule,
     MatRadioModule,
     MatCheckboxModule,
+    MatSnackBarModule,
   ],
   exports: [MapComponent, SidenavComponent],
   providers: [DynamicFormFieldService],

@@ -1,11 +1,13 @@
 import { iif, Observable, Subscription } from 'rxjs';
-import { filter, map, switchMap, take, takeUntil, tap } from 'rxjs/operators';
+import { filter, map, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
 
 import { Injectable, Injector, OnDestroy, Type } from '@angular/core';
 import { createCustomElement } from '@angular/elements';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { Base } from '../base/base';
-import { GeometryType, IWebComponents } from '../model';
+import { GeometryType, IWebComponents, XArcgisTreeNode } from '../model';
+import { SidenavService } from './sidenav.service';
 import { StoreService } from './store.service';
 import { WidgetService, XArcgisWidgets } from './widget.service';
 
@@ -22,13 +24,15 @@ export abstract class DrawBase extends Base {
 
 type CloseEventHandler = (view: esri.MapView) => void;
 
+type AllowedWorkFlow = 'create' | 'update';
+
 @Injectable({ providedIn: 'root' })
 export class DrawService extends DrawBase implements OnDestroy {
   isModulesLoaded = false;
 
-  private Editor: esri.EditorConstructor;
+  editor: esri.Editor;
 
-  private editor: esri.Editor;
+  private Editor: esri.EditorConstructor;
 
   /**
    * By default, we add a span element to the editor popup in order to exit the draw process
@@ -37,22 +41,39 @@ export class DrawService extends DrawBase implements OnDestroy {
 
   private webComponents: IWebComponents[] = [];
 
-  constructor(private storeService: StoreService, private widgetService: WidgetService, private injector: Injector) {
+  constructor(
+    private storeService: StoreService,
+    private widgetService: WidgetService,
+    private injector: Injector,
+    private sidenavService: SidenavService,
+    private snackbar: MatSnackBar
+  ) {
     super();
   }
 
   /**
    * handle draw event;
    */
-  handleDraw(onDraw: Observable<GeometryType>): Subscription {
-    return onDraw
+  handleDraw(drawObs: Observable<GeometryType>): Subscription {
+    return drawObs
       .pipe(
         filter((value) => !!value),
         switchMap((geometryType) => this.loadEditor(geometryType)),
         switchMap((_) => this.storeService.store.pipe(map((config) => config.esriMapView))),
+        withLatestFrom(this.sidenavService.activeNodeObs),
         takeUntil(this.storeService.destroy)
       )
-      .subscribe((view) => this.addCloseElement(view));
+      .subscribe(([view, activeNode]) => {
+        const editor = this.editor;
+        this.addCloseElement(view);
+
+        if (activeNode?.graphic?.id) {
+          // TODO: forbidden editor back button
+          editor.startUpdateWorkflowAtFeatureSelection().then((_) => {
+            this.updateEditorFields(activeNode);
+          });
+        }
+      });
   }
 
   /**
@@ -83,6 +104,49 @@ export class DrawService extends DrawBase implements OnDestroy {
     }
   }
 
+  private updateEditorFields(activeNode: XArcgisTreeNode | null): void {
+    if (!activeNode) {
+      return;
+    }
+
+    const editor = this.editor;
+    const model = editor.viewModel.featureFormViewModel;
+
+    const watchHandler = model.watch('feature', (feature: esri.Graphic) => {
+      if (!feature) {
+        return;
+      }
+
+      const id = feature.getAttribute('boundNodeId');
+      const { id: activeNodeId, graphic } = activeNode;
+      const unbound = !id;
+      const hadBoundToAnotherNode = !!id && id !== activeNodeId;
+      const hadBoundToAnotherFeature = !!graphic?.id;
+
+      if (hadBoundToAnotherNode) {
+        this.openSnackbar(`此图形已绑定节点。节点名称：${feature.getAttribute('boundNodeName')}，节点ID：${id}`);
+      }
+
+      if (hadBoundToAnotherFeature) {
+        this.openSnackbar(`此节点已绑定图形。 图形名称：${activeNode.graphic.type}，图形ID：${activeNode.graphic.id}`);
+      }
+
+      if (hadBoundToAnotherFeature || hadBoundToAnotherNode) {
+        const workflowWatcher = this.editor.activeWorkflow.watch('hasPreviousStep', (nValue, oValue) => {
+          if (nValue) {
+            this.editor.activeWorkflow.previous();
+            workflowWatcher.remove();
+          }
+        });
+      }
+
+      if (unbound) {
+        feature.attributes = { ...feature.attributes, boundNodeName: activeNode.name, boundNodeId: activeNode.id };
+        model.set('feature', feature);
+      }
+    });
+  }
+
   private loadEditor(type: GeometryType): Observable<esri.Editor> {
     return iif(
       () => this.isModulesLoaded,
@@ -110,17 +174,12 @@ export class DrawService extends DrawBase implements OnDestroy {
         this.destroyEditor(view);
 
         const { Editor } = this;
-        const layerInfos = this.getLayInfos(iMap, currentGeometryType);
+        const layerInfos = this.getLayerInfos(iMap, currentGeometryType);
         const editor = new Editor({
           view,
-          // layerInfos,
-          // label: 'editor',
-          // supportingWidgetDefaults: {
-          //   featureTemplates: {
-          //     groupBy: (_) => GeometryTypeToDes[currentGeometryType],
-          //     filterEnabled: true,
-          //   },
-          // },
+          layerInfos,
+          allowedWorkflows: this.getAllowedWorkFlows(),
+          label: 'editor',
         });
 
         this.editor = editor;
@@ -180,11 +239,11 @@ export class DrawService extends DrawBase implements OnDestroy {
     }
   }
 
-  private getLayInfos(map: esri.Map, currentGeometryType: GeometryType): esri.LayerInfo[] {
+  private getLayerInfos(map: esri.Map, currentGeometryType: GeometryType): esri.LayerInfo[] {
     const result: esri.LayerInfo[] = [];
 
     map.layers
-      .filter((layer) => layer.id.includes(this.layerIDSuffix))
+      // .filter((layer) => layer.id.includes(this.layerIDSuffix))
       .forEach((layer) => {
         const config = {
           layer,
@@ -200,14 +259,31 @@ export class DrawService extends DrawBase implements OnDestroy {
 
   private getFieldConfig(): Partial<esri.FieldConfig>[] {
     return [
-      { name: 'category', label: '类型' },
-      { name: 'name', label: '名称' },
-      { name: 'address', label: '地址' },
-      { name: 'phone', label: '电话' },
-      { name: 'describe', label: '描述' },
-      { name: 'floor', label: '楼层' },
-      { name: 'comment', label: '备注' },
+      {
+        name: 'boundNodeName',
+        label: '绑定节点名称',
+        editable: false,
+        hint: '从左侧导航栏中选择需要绑定的节点',
+      },
+      { name: 'name', label: '名称', hint: '你可以为当前编辑的图形设置单独的名称' },
+      { name: 'description', label: '描述', editorType: 'text-area' },
     ];
+  }
+
+  private getAllowedWorkFlows(): AllowedWorkFlow[] {
+    let result: AllowedWorkFlow[] = ['create', 'update'];
+
+    this.sidenavService.activeNodeObs.pipe(take(1)).subscribe((activeNode) => {
+      if (!!activeNode?.graphic?.id) {
+        result = ['update'];
+      }
+    });
+
+    return result;
+  }
+
+  private openSnackbar(message: string): void {
+    this.snackbar.open(message, '', { duration: 3000, verticalPosition: 'top' });
   }
 
   /**

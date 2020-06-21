@@ -1,12 +1,6 @@
 import { Observable, Subscription } from 'rxjs';
 import {
-  debounceTime,
-  distinctUntilKeyChanged,
-  filter,
-  map,
-  switchMap,
-  takeUntil,
-  withLatestFrom,
+    debounceTime, distinctUntilKeyChanged, filter, map, switchMap, takeUntil, withLatestFrom
 } from 'rxjs/operators';
 
 import { HttpClient } from '@angular/common/http';
@@ -42,8 +36,8 @@ export class SearchService extends SearchBase {
   /**
    * handle the search event
    */
-  handleSearch(onSearch: Observable<Address>): Subscription {
-    return onSearch
+  handleSearch(searchObs: Observable<Address>): Subscription {
+    return searchObs
       .pipe(
         filter((v) => !!v),
         distinctUntilKeyChanged('location'), // the key in Address interface;

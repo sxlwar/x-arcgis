@@ -30,7 +30,7 @@ x-arcgis 将在对应的位置显示定义好的部件
 3. 如果只定义 UI 但是没有给 x-arcgis 传入相应事件源时，此部件将不会在地图上显示。以画图组件为例
 
 ```html
-<x-arcgis-map [onDraw]="draw.valueChanges">
+<x-arcgis-map [drawObs]="draw.valueChanges">
   <!-- 触发画图事件的模板 -->
   <nz-radio-group [formControl]="draw" [nzSize]="'default'" [nzButtonStyle]="'solid'" x-arcgis-draw-toolbar>
     <label nz-radio-button nzValue="point">
