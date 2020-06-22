@@ -1,7 +1,8 @@
-import { iif, Observable, Subscription } from 'rxjs';
-import { filter, map, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
+import { combineLatest, iif, Observable, Subscription, timer } from 'rxjs';
+import { distinctUntilChanged, filter, map, switchMap, take, takeUntil, tap } from 'rxjs/operators';
 
-import { Injectable, Injector, OnDestroy, Type } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Inject, Injectable, Injector, OnDestroy, Type } from '@angular/core';
 import { createCustomElement } from '@angular/elements';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -22,15 +23,13 @@ export abstract class DrawBase extends Base {
   abstract handleDraw(source: Observable<GeometryType>): Subscription;
 }
 
-type CloseEventHandler = (view: esri.MapView) => void;
+type CloseEventHandler = (view: esri.MapView, editor: esri.Editor) => (event: MouseEvent) => void;
 
 type AllowedWorkFlow = 'create' | 'update';
 
 @Injectable({ providedIn: 'root' })
 export class DrawService extends DrawBase implements OnDestroy {
   isModulesLoaded = false;
-
-  editor: esri.Editor;
 
   private Editor: esri.EditorConstructor;
 
@@ -41,12 +40,17 @@ export class DrawService extends DrawBase implements OnDestroy {
 
   private webComponents: IWebComponents[] = [];
 
+  private watchFeatureHandler: IHandle;
+
+  private closeIconListener: (event: MouseEvent) => void;
+
   constructor(
     private storeService: StoreService,
     private widgetService: WidgetService,
     private injector: Injector,
     private sidenavService: SidenavService,
-    private snackbar: MatSnackBar
+    private snackbar: MatSnackBar,
+    @Inject(DOCUMENT) private document: Document
   ) {
     super();
   }
@@ -55,24 +59,28 @@ export class DrawService extends DrawBase implements OnDestroy {
    * handle draw event;
    */
   handleDraw(drawObs: Observable<GeometryType>): Subscription {
-    return drawObs
-      .pipe(
+    return combineLatest(
+      drawObs.pipe(
         filter((value) => !!value),
-        switchMap((geometryType) => this.loadEditor(geometryType)),
-        switchMap((_) => this.storeService.store.pipe(map((config) => config.esriMapView))),
-        withLatestFrom(this.sidenavService.activeNodeObs),
-        takeUntil(this.storeService.destroy)
-      )
-      .subscribe(([view, activeNode]) => {
-        const editor = this.editor;
-        this.addCloseElement(view);
+        switchMap((geometryType) => this.loadEditor(geometryType))
+      ),
+      this.storeService.store.pipe(
+        filter((config) => !!config),
+        map((config) => config.esriMapView),
+        distinctUntilChanged()
+      ),
+      this.sidenavService.activeNodeObs
+    )
+      .pipe(takeUntil(this.storeService.destroy))
+      .subscribe(([editor, view, activeNode]) => {
+        this.addCloseElement(view, editor);
+        /**
+         * 1. 启动后需要监听用户选择的图形
+         *   1-1 如果图形已经被创建好，则允许绑定
+         * 2. 如果用户设置了当前需要绑定的节点，需要更新表单字段
+         */
 
-        if (activeNode?.graphic?.id) {
-          // TODO: forbidden editor back button
-          editor.startUpdateWorkflowAtFeatureSelection().then((_) => {
-            this.updateEditorFields(activeNode);
-          });
-        }
+        this.updateEditorFields(activeNode, editor);
       });
   }
 
@@ -80,8 +88,8 @@ export class DrawService extends DrawBase implements OnDestroy {
    * set the html element that use for close the draw modal;
    * component: The component that will display in to editor popup, used to exit the draw process;
    */
-  // tslint: disable-next-line: no-any;
   setCloseNode(
+    // tslint: disable-next-line: no-any;
     component: Type<any>,
     closeEventHandler: CloseEventHandler = this.closeEditor.bind(this),
     closeNodeTagName = 'close-element'
@@ -90,27 +98,33 @@ export class DrawService extends DrawBase implements OnDestroy {
 
     customElements.define(closeNodeTagName, CloseElement);
 
-    const node = document.createElement(closeNodeTagName);
+    const node = this.document.createElement(closeNodeTagName);
 
     this.closeNodeTagName = closeNodeTagName;
     this.webComponents.push({ tagName: closeNodeTagName, node, listener: closeEventHandler });
   }
 
-  destroyEditor(view: esri.MapView | esri.SceneView): void {
-    if (this.editor) {
-      this.editor.destroy();
-      view.ui.remove(this.editor);
-      this.editor = null;
+  destroyEditor(view: esri.MapView | esri.SceneView, editor?: esri.Editor): void {
+    if (editor) {
+      editor.destroy();
+      view.ui.remove(editor);
+    }
+
+    if (this.watchFeatureHandler) {
+      this.watchFeatureHandler.remove();
     }
   }
 
-  private updateEditorFields(activeNode: XArcgisTreeNode | null): void {
-    if (!activeNode) {
-      return;
+  private updateEditorFields(activeNode: XArcgisTreeNode | null, editor: esri.Editor): void {
+    if (this.watchFeatureHandler) {
+      this.watchFeatureHandler.remove();
     }
 
-    const editor = this.editor;
-    const model = editor.viewModel.featureFormViewModel;
+    const model = editor.viewModel?.featureFormViewModel;
+
+    if (!model) {
+      return;
+    }
 
     const watchHandler = model.watch('feature', (feature: esri.Graphic) => {
       if (!feature) {
@@ -118,33 +132,29 @@ export class DrawService extends DrawBase implements OnDestroy {
       }
 
       const id = feature.getAttribute('boundNodeId');
-      const { id: activeNodeId, graphic } = activeNode;
-      const unbound = !id;
-      const hadBoundToAnotherNode = !!id && id !== activeNodeId;
-      const hadBoundToAnotherFeature = !!graphic?.id;
+      const hadBoundToAnotherNode = !!id && id !== activeNode?.id;
 
+      // The relationship between node and feature: one-to-many, a node can bind multiple features, but a feature can only be bound to a node.
       if (hadBoundToAnotherNode) {
         this.openSnackbar(`此图形已绑定节点。节点名称：${feature.getAttribute('boundNodeName')}，节点ID：${id}`);
-      }
-
-      if (hadBoundToAnotherFeature) {
-        this.openSnackbar(`此节点已绑定图形。 图形名称：${activeNode.graphic.type}，图形ID：${activeNode.graphic.id}`);
-      }
-
-      if (hadBoundToAnotherFeature || hadBoundToAnotherNode) {
-        const workflowWatcher = this.editor.activeWorkflow.watch('hasPreviousStep', (nValue, oValue) => {
+        const workflowWatcher = editor.activeWorkflow.watch('hasPreviousStep', (nValue, oValue) => {
           if (nValue) {
-            this.editor.activeWorkflow.previous();
+            editor.activeWorkflow.previous();
             workflowWatcher.remove();
           }
         });
-      }
-
-      if (unbound) {
-        feature.attributes = { ...feature.attributes, boundNodeName: activeNode.name, boundNodeId: activeNode.id };
+      } else {
+        if (!!activeNode) {
+          feature.attributes = { ...feature.attributes, boundNodeName: activeNode.name, boundNodeId: activeNode.id };
+          // Arcgis official document doest not offer a method to update the value of specific field, here we force the
+          // form refresh by setting the top-level data source which here is the feature, because of the widget is implemented by JSX.
+          this.sidenavService.editingGraphic$.next(feature);
+        }
         model.set('feature', feature);
       }
     });
+
+    this.watchFeatureHandler = watchHandler;
   }
 
   private loadEditor(type: GeometryType): Observable<esri.Editor> {
@@ -178,11 +188,9 @@ export class DrawService extends DrawBase implements OnDestroy {
         const editor = new Editor({
           view,
           layerInfos,
-          allowedWorkflows: this.getAllowedWorkFlows(),
           label: 'editor',
         });
 
-        this.editor = editor;
         view.ui.add(editor, 'top-left');
 
         return editor;
@@ -190,52 +198,57 @@ export class DrawService extends DrawBase implements OnDestroy {
     );
   }
 
-  private addCloseElement(view: esri.MapView) {
-    window.setTimeout(() => {
-      const header = document.querySelector('.esri-editor__header');
+  private addCloseElement(view: esri.MapView, editor: esri.Editor) {
+    timer(1000, 0)
+      .pipe(take(1))
+      .subscribe((_) => {
+        const header = this.document.querySelector('.esri-editor__header');
 
-      if (!header) {
-        return;
-      }
+        if (!header) {
+          return;
+        }
 
-      const appended = header.querySelector(this.closeNodeTagName);
-      let node = null;
+        const appended = header.querySelector(this.closeNodeTagName);
+        let node = null;
 
-      if (!!appended) {
-        return;
-      }
+        if (!!appended) {
+          return;
+        }
 
-      if (this.closeNodeTagName === 'span') {
-        const listener = this.closeEditor.bind(this);
+        if (this.closeNodeTagName === 'span') {
+          const listener = this.closeEditor.bind(this);
 
-        node = document.createElement(this.closeNodeTagName);
-        node.innerText = '退出';
-        node.className = 'close-editor';
-        node.style.cssText = 'cursor:pointer;';
-        node.setAttribute('title', '退出编辑');
-        node.addEventListener('click', listener);
-        this.webComponents.push({ tagName: this.closeNodeTagName, node, listener });
-      } else {
-        const index = this.webComponents.findIndex((item) => (item.tagName = this.closeNodeTagName));
-        const { tagName, listener, node: closeNode } = this.webComponents[index];
-        const listenerWrapper = () => listener(view);
+          node = this.document.createElement(this.closeNodeTagName);
+          node.innerText = '退出';
+          node.className = 'close-editor';
+          node.style.cssText = 'cursor:pointer;';
+          node.setAttribute('title', '退出编辑');
+          this.closeIconListener && node.removeEventListener('click', this.closeIconListener);
+          this.closeIconListener = () => listener(view, editor);
+          node.addEventListener('click', this.closeIconListener);
+          this.webComponents.push({ tagName: this.closeNodeTagName, node, listener });
+        } else {
+          const index = this.webComponents.findIndex((item) => (item.tagName = this.closeNodeTagName));
+          const { tagName, listener, node: closeNode } = this.webComponents[index];
+          node = closeNode;
+          // the node element only created once, so we must remove the listener first;
+          this.closeIconListener && node.removeEventListener('click', this.closeIconListener);
+          // create a new event listener
+          this.closeIconListener = listener(view, editor);
+          node.addEventListener('click', this.closeIconListener);
+          this.webComponents[index] = { tagName, node, listener };
+        }
 
-        node = closeNode;
-        // the node element only created once, so we must remove the listener first;
-        node.removeEventListener('click', listener);
-        node.addEventListener('click', listenerWrapper);
-        this.webComponents[index] = { tagName, node, listener: listenerWrapper };
-      }
-
-      header.appendChild(node);
-    }, 1000);
+        node.id = 'x-arcgis-close-editor-icon';
+        header.appendChild(node);
+      });
   }
 
-  private closeEditor(view: esri.MapView) {
+  private closeEditor(view: esri.MapView, editor: esri.Editor) {
     const confirmed = window.confirm('Confirm to close this editor?');
 
     if (confirmed) {
-      this.destroyEditor(view);
+      this.destroyEditor(view, editor);
     }
   }
 
@@ -257,7 +270,7 @@ export class DrawService extends DrawBase implements OnDestroy {
     return result;
   }
 
-  private getFieldConfig(): Partial<esri.FieldConfig>[] {
+  private getFieldConfig(): esri.FieldConfig[] {
     return [
       {
         name: 'boundNodeName',
@@ -267,9 +280,14 @@ export class DrawService extends DrawBase implements OnDestroy {
       },
       { name: 'name', label: '名称', hint: '你可以为当前编辑的图形设置单独的名称' },
       { name: 'description', label: '描述', editorType: 'text-area' },
-    ];
+    ] as esri.FieldConfig[];
   }
 
+  /**
+   * !TODO: remove this method.
+   * @deprecated Remove this
+   * Because of the relationship between node and graphic is one-to-many, so both creation and update are all allowed.
+   */
   private getAllowedWorkFlows(): AllowedWorkFlow[] {
     let result: AllowedWorkFlow[] = ['create', 'update'];
 

@@ -8,8 +8,8 @@ import { map, startWith, take } from 'rxjs/operators';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import {
-    Address, BaseMapConfig, DrawService, GeometryType, SceneType, SearchService, WidgetService,
-    XArcgisTreeNode, XArcgisWidgets
+    Address, BaseMapConfig, DrawService, GeometryType, IFeatureLayerEditsEvent, SceneType,
+    SearchService, WidgetService, XArcgisTreeNode, XArcgisWidgets
 } from '@x-arcgis';
 
 import { MockService } from '../providers/mock.service';
@@ -130,12 +130,12 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
     this.listOfOption = this.searchService.getFuzzyMatchList(this.search.valueChanges as Observable<string>);
 
-    this.drawService.setCloseNode(CloseComponent, (view) => {
+    this.drawService.setCloseNode(CloseComponent, (view, editor) => (event) => {
       this.modalService.confirm({
         nzTitle: '<i>信息提示?</i>',
         nzContent: '<b>确定要退出编辑吗？</b>',
         nzOnOk: () => {
-          this.drawService.destroyEditor(view);
+          this.drawService.destroyEditor(view, editor);
           this.draw.setValue(null);
         },
       });
@@ -179,13 +179,17 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   }
 
   onSidenavFormSubmit(event: any) {
-    console.log(event);
+    console.log('Receive side nav submit', event);
   }
 
   onDraw(event: GeometryType): void {
     if (event !== this.draw.value) {
       this.draw.setValue(event);
     }
+  }
+
+  onEdits(event: IFeatureLayerEditsEvent): void {
+    console.log('Receive edit response', event);
   }
 
   ngOnDestroy() {}

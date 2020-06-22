@@ -5,7 +5,7 @@ import {
     Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild
 } from '@angular/core';
 
-import { Address, GeometryType, SceneType } from '../model';
+import { Address, GeometryType, IFeatureLayerEditsEvent, IHandle, SceneType } from '../model';
 import { BaseMapConfig } from '../model/basemap';
 import { BasemapService } from '../providers/basemap.service';
 import { ConfigService } from '../providers/config.service';
@@ -18,6 +18,7 @@ import { SidenavService } from '../providers/sidenav.service';
 import { StoreService } from '../providers/store.service';
 
 import esri = __esri;
+
 @Component({
   selector: 'x-arcgis-map',
   template: ``,
@@ -89,7 +90,15 @@ export class MapComponent implements OnInit, OnDestroy {
     return this._sceneType;
   }
 
-  @Output() drawEvents: EventEmitter<GeometryType> = new EventEmitter();
+  /**
+   * geometry type being operated
+   */
+  @Output() drawingType: EventEmitter<GeometryType> = new EventEmitter();
+
+  /**
+   * Edit results, the response of the applyEdits method, one of creation, update or delete operation would fire this event.
+   */
+  @Output() editResults: EventEmitter<IFeatureLayerEditsEvent> = new EventEmitter();
 
   private _sceneType: SceneType = '2D';
 
@@ -118,6 +127,8 @@ export class MapComponent implements OnInit, OnDestroy {
 
   private destroy$: Subject<boolean> = new Subject();
 
+  private layerEditHandlers: IHandle[] = [];
+
   constructor(
     private configService: ConfigService,
     private searchService: SearchService,
@@ -127,7 +138,7 @@ export class MapComponent implements OnInit, OnDestroy {
     private drawService: DrawService,
     private map2dService: Map2dService,
     private map3dService: Map3dService,
-    private sidenavServer: SidenavService
+    private sidenavService: SidenavService
   ) {}
 
   async ngOnInit() {
@@ -142,6 +153,8 @@ export class MapComponent implements OnInit, OnDestroy {
       this.storeService.destroy.next(true);
       this.destroy$.next(true);
     }
+
+    this.layerEditHandlers.forEach((handler) => handler.remove());
   }
 
   private loadMap() {
@@ -228,13 +241,19 @@ export class MapComponent implements OnInit, OnDestroy {
       this.searchService.handleSearch(this.searchObs);
     }
 
+    this.layerEditHandlers = layers.map((layer) =>
+      layer.on('edits', (event: IFeatureLayerEditsEvent) => {
+        this.editResults.emit(event);
+        this.sidenavService.editResponse$.next(event);
+      })
+    );
     this.drawService.handleDraw(this.getDrawEvents());
   }
 
   private getDrawEvents(): Observable<GeometryType> {
     return merge(
       iif(() => !!this.drawObs, this.drawObs, of(null)),
-      this.sidenavServer.activeNodeObs.pipe(
+      this.sidenavService.activeNodeObs.pipe(
         map((node) => {
           const { graphic } = node || {};
           const { type } = graphic || {};
@@ -244,7 +263,7 @@ export class MapComponent implements OnInit, OnDestroy {
       )
     ).pipe(
       distinctUntilChanged(),
-      tap((type) => this.drawEvents.next(type))
+      tap((type) => this.drawingType.next(type))
     );
   }
 }

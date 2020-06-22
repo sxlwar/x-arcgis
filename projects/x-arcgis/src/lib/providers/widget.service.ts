@@ -13,6 +13,7 @@ export enum XArcgisWidgets {
   HOME = 'esri/widgets/Home',
   EDITOR = 'esri/widgets/Editor',
   ViewSwitcher = 'x-widgets/ViewSwitcher',
+  FEATURE_FORM = 'esri/widgets/FeatureForm'
 }
 
 export interface IWidget<T = { new (properties: any): any }> {
@@ -42,7 +43,7 @@ export class WidgetService extends Widget implements OnDestroy {
    * @returns widget constructor observable.
    */
   getWidgets<T>(paths: string[]): Observable<T[]>;
-  getWidgets<T, T2>(paths: string[]): Observable<(T | T2)[]>;
+  getWidgets<T, T2>(paths: string[]): Observable<[T, T2]>;
   getWidgets<T, T2, T3>(paths: string[]): Observable<(T | T2 | T3)[]> {
     const { isAllLoaded, unloaded } = this.isAllWidgetsLoaded(paths);
 

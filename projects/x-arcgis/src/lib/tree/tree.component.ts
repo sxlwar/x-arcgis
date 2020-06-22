@@ -32,7 +32,12 @@ export class TreeComponent implements OnInit {
 
   constructor(public sidenavService: SidenavService) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    // this.sidenavService.editResponseObs.pipe()
+    this.sidenavService.combineActiveNodeAndGraphic().subscribe((v) => {
+      console.log(v);
+    });
+  }
 
   onNodeClick(node: XArcgisTreeNode): void {
     this.sidenavService.activeNode$.next(node);

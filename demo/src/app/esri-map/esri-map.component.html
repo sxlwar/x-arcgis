@@ -22,7 +22,8 @@
   (mapLoaded)="addWidget($event)"
   [basemapObs]="basemapObs"
   [sceneType]="sceneType"
-  (drawEvents)="onDraw($event)"
+  (drawingType)="onDraw($event)"
+  (editResults)="onEdits($event)"
   class="x-arcgis-map"
 >
   <nz-radio-group [formControl]="draw" [nzSize]="'default'" [nzButtonStyle]="'solid'" x-arcgis-draw-toolbar>
