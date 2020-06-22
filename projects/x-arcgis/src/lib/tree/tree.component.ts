@@ -11,12 +11,11 @@ import { SidenavService } from '../providers/sidenav.service';
   styleUrls: ['./tree.component.scss'],
 })
 export class TreeComponent implements OnInit {
-  treeControl = new NestedTreeControl<XArcgisTreeNode>((node) => node.children);
-
   @Input() set source(input: XArcgisTreeNode[]) {
     if (!!input && input.length) {
       this.dataSource = new ArrayDataSource(input);
       this._source = input;
+      this.sidenavService.treeNodeSourceData = input;
     }
   }
 
@@ -26,6 +25,8 @@ export class TreeComponent implements OnInit {
 
   private _source: XArcgisTreeNode[];
 
+  treeControl = new NestedTreeControl<XArcgisTreeNode>((node) => node.children);
+
   dataSource: ArrayDataSource<XArcgisTreeNode>;
 
   hasChild = (_: number, node: XArcgisTreeNode) => !!node.children && node.children.length > 0;
@@ -33,7 +34,6 @@ export class TreeComponent implements OnInit {
   constructor(public sidenavService: SidenavService) {}
 
   ngOnInit(): void {
-    // this.sidenavService.editResponseObs.pipe()
     this.sidenavService.combineActiveNodeAndGraphic().subscribe((v) => {
       console.log(v);
     });
@@ -41,5 +41,9 @@ export class TreeComponent implements OnInit {
 
   onNodeClick(node: XArcgisTreeNode): void {
     this.sidenavService.activeNode$.next(node);
+  }
+
+  onLinkClick(node: XArcgisTreeNode) :void {
+    this.sidenavService.linkNode$.next(node); 
   }
 }

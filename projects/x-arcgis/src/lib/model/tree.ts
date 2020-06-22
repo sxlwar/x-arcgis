@@ -10,5 +10,4 @@ export interface XArcgisTreeNode {
     id?: string | number;
     type?: GeometryType;
   };
-  [key: string]: any;
 }

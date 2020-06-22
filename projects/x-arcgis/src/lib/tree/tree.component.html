@@ -6,7 +6,15 @@
     <li (click)="onNodeClick(node); $event.stopPropagation()" class="mat-tree-node">
       <!-- use a disabled button to provide padding for tree leaf -->
       <button mat-icon-button disabled style="width: 2.5em;"></button>
-      {{ node.name }}
+      <span>{{ node.name }}</span>
+      <button
+        mat-icon-button
+        color="primary"
+        (click)="onLinkClick(node); $event.stopPropagation()"
+        [attr.aria-label]="'bind-icon'"
+      >
+        <mat-icon>link</mat-icon>
+      </button>
     </li>
   </mat-tree-node>
   <!-- This is the tree node template for expandable nodes -->
@@ -18,7 +26,15 @@
             {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
           </mat-icon>
         </button>
-        {{ node.name }}
+        <span>{{ node.name }}</span>
+        <button
+          mat-icon-button
+          color="primary"
+          (click)="onLinkClick(node); $event.stopPropagation()"
+          [attr.aria-label]="'bind-icon'"
+        >
+          <mat-icon>link</mat-icon>
+        </button>
       </div>
       <ul [class.x-arcgis-tree-invisible]="!treeControl.isExpanded(node)">
         <ng-container matTreeNodeOutlet></ng-container>

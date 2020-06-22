@@ -1,5 +1,7 @@
 import { combineLatest, iif, Observable, Subscription, timer } from 'rxjs';
-import { distinctUntilChanged, filter, map, switchMap, take, takeUntil, tap } from 'rxjs/operators';
+import {
+    distinctUntilChanged, filter, map, startWith, switchMap, take, takeUntil, tap
+} from 'rxjs/operators';
 
 import { DOCUMENT } from '@angular/common';
 import { Inject, Injectable, Injector, OnDestroy, Type } from '@angular/core';
@@ -33,6 +35,8 @@ export class DrawService extends DrawBase implements OnDestroy {
 
   private Editor: esri.EditorConstructor;
 
+  private activeEditor: esri.Editor;
+
   /**
    * By default, we add a span element to the editor popup in order to exit the draw process
    */
@@ -59,29 +63,35 @@ export class DrawService extends DrawBase implements OnDestroy {
    * handle draw event;
    */
   handleDraw(drawObs: Observable<GeometryType>): Subscription {
-    return combineLatest(
-      drawObs.pipe(
-        filter((value) => !!value),
-        switchMap((geometryType) => this.loadEditor(geometryType))
-      ),
-      this.storeService.store.pipe(
-        filter((config) => !!config),
-        map((config) => config.esriMapView),
-        distinctUntilChanged()
-      ),
-      this.sidenavService.activeNodeObs
-    )
+    const editorObs = drawObs.pipe(
+      filter((value) => !!value),
+      switchMap((geometryType) => this.loadEditor(geometryType))
+    );
+    const viewObs = this.storeService.store.pipe(
+      filter((config) => !!config),
+      map((config) => config.esriMapView),
+      distinctUntilChanged()
+    );
+    const activeNodeObs = this.sidenavService.activeNodeObs;
+    const destroy$$ = combineLatest(drawObs, viewObs)
       .pipe(takeUntil(this.storeService.destroy))
-      .subscribe(([editor, view, activeNode]) => {
-        this.addCloseElement(view, editor);
-        /**
-         * 1. 启动后需要监听用户选择的图形
-         *   1-1 如果图形已经被创建好，则允许绑定
-         * 2. 如果用户设置了当前需要绑定的节点，需要更新表单字段
-         */
-
-        this.updateEditorFields(activeNode, editor);
+      .subscribe(([geometryType, view]) => {
+        if (!geometryType && !this.activeEditor?.destroyed) {
+          this.destroyEditor(view, this.activeEditor);
+        }
       });
+    const linkNodeObs = this.sidenavService.linkNodeObs.pipe(startWith(null));
+    const draw$$ = combineLatest(editorObs, viewObs, activeNodeObs, linkNodeObs)
+      .pipe(
+        filter(([editor]) => !!editor && !editor.destroyed),
+        takeUntil(this.storeService.destroy)
+      )
+      .subscribe(([editor, view, activeNode, linkNode]) => {
+        this.addCloseElement(view, editor);
+        this.checkFeatureFormViewModel(activeNode, editor, linkNode);
+      });
+
+    return destroy$$.add(draw$$);
   }
 
   /**
@@ -105,7 +115,7 @@ export class DrawService extends DrawBase implements OnDestroy {
   }
 
   destroyEditor(view: esri.MapView | esri.SceneView, editor?: esri.Editor): void {
-    if (editor) {
+    if (editor && !editor.destroyed) {
       editor.destroy();
       view.ui.remove(editor);
     }
@@ -113,46 +123,71 @@ export class DrawService extends DrawBase implements OnDestroy {
     if (this.watchFeatureHandler) {
       this.watchFeatureHandler.remove();
     }
+
+    this.sidenavService.linkNode$.next(null);
   }
 
-  private updateEditorFields(activeNode: XArcgisTreeNode | null, editor: esri.Editor): void {
-    if (this.watchFeatureHandler) {
-      this.watchFeatureHandler.remove();
-    }
-
+  /**
+   * Check whether the selected graphic had bound to a node, show alerting message if bounded, set bound information to the active tree node
+   * Bound information: boundNodeName and boundNodeId
+   */
+  private checkFeatureFormViewModel(
+    activeNode: XArcgisTreeNode | null,
+    editor: esri.Editor,
+    linkNode: XArcgisTreeNode
+  ): void {
     const model = editor.viewModel?.featureFormViewModel;
 
     if (!model) {
       return;
     }
 
-    const watchHandler = model.watch('feature', (feature: esri.Graphic) => {
+    const watcher = (feature: esri.Graphic) => {
       if (!feature) {
         return;
       }
 
-      const id = feature.getAttribute('boundNodeId');
-      const hadBoundToAnotherNode = !!id && id !== activeNode?.id;
+      const id: string = feature.getAttribute('boundNodeId');
+      const hadBoundToAnotherNode = !!id && !!activeNode && id !== activeNode.id;
 
       // The relationship between node and feature: one-to-many, a node can bind multiple features, but a feature can only be bound to a node.
       if (hadBoundToAnotherNode) {
         this.openSnackbar(`此图形已绑定节点。节点名称：${feature.getAttribute('boundNodeName')}，节点ID：${id}`);
-        const workflowWatcher = editor.activeWorkflow.watch('hasPreviousStep', (nValue, oValue) => {
-          if (nValue) {
-            editor.activeWorkflow.previous();
-            workflowWatcher.remove();
-          }
-        });
-      } else {
-        if (!!activeNode) {
-          feature.attributes = { ...feature.attributes, boundNodeName: activeNode.name, boundNodeId: activeNode.id };
-          // Arcgis official document doest not offer a method to update the value of specific field, here we force the
-          // form refresh by setting the top-level data source which here is the feature, because of the widget is implemented by JSX.
-          this.sidenavService.editingGraphic$.next(feature);
-        }
-        model.set('feature', feature);
       }
-    });
+
+      if (!!id) {
+        this.sidenavService.activeTreeNode(id);
+      }
+
+      const { boundNodeName: preBoundNodeName, boundNodeId: preBoundNodeId } = feature.attributes;
+      const { name: curBoundNodeName, id: curBoundNodeId } = activeNode || {};
+      const { name: linkNodeName, id: linkNodeId } = linkNode || {};
+      const boundNodeName = curBoundNodeName || linkNodeName || preBoundNodeName;
+      const boundNodeId = curBoundNodeId || linkNodeId || preBoundNodeId;
+
+      feature.attributes = { ...feature.attributes, boundNodeName, boundNodeId };
+
+      if(curBoundNodeName || linkNodeName) {
+        // TODO: enable update button;
+      }
+
+      this.sidenavService.editingGraphic$.next(feature);
+      /**
+       * Here we force the form refresh by setting the top-level data source which here is the feature, because of the widget is implemented by JSX.
+       *
+       * Even though we can use graphic.setAttribute or accessor.set method to modify the attribute, it actually works, but the ui state is not
+       * consistent with the attribute.
+       */
+      model.set('feature', feature);
+    };
+
+    let watchHandler = this.watchFeatureHandler;
+
+    if (model.feature) {
+      watcher(model.feature);
+    } else {
+      watchHandler = model.watch('feature', watcher);
+    }
 
     this.watchFeatureHandler = watchHandler;
   }
@@ -181,7 +216,7 @@ export class DrawService extends DrawBase implements OnDestroy {
       map(({ esriMapView, esriMap, esriSceneView, esriWebScene }) => {
         const view = esriMapView || esriSceneView;
         const iMap = esriMap || esriWebScene;
-        this.destroyEditor(view);
+        this.destroyEditor(view, this.activeEditor);
 
         const { Editor } = this;
         const layerInfos = this.getLayerInfos(iMap, currentGeometryType);
@@ -191,6 +226,7 @@ export class DrawService extends DrawBase implements OnDestroy {
           label: 'editor',
         });
 
+        this.activeEditor = editor;
         view.ui.add(editor, 'top-left');
 
         return editor;

@@ -55,13 +55,14 @@ const TREE_DATA: XArcgisTreeNode[] = [
       },
     ],
     children: [
-      { name: '子公司1' },
+      { name: '子公司1', id: 'company_1' },
       {
         name: '子公司2',
+        id: 'company_2',
         fields: [{ label: '员工人数', key: 'memberCount', controlType: 'input', type: 'number' }],
         graphic: { type: 'point', id: 2 },
       },
-      { name: '公司总部' },
+      { name: '公司总部', id: 'company_3' },
     ],
     graphic: {
       id: '11',
@@ -74,10 +75,12 @@ const TREE_DATA: XArcgisTreeNode[] = [
     children: [
       {
         name: '1#楼',
+        id: 'building_1',
         children: [{ name: '1单元' }, { name: '2单元' }],
       },
       {
         name: '2#楼',
+        id: 'building_2',
         children: [{ name: '1单元' }, { name: '2单元', children: [{ name: '18楼' }] }],
       },
     ],
