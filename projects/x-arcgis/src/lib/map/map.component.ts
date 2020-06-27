@@ -95,11 +95,6 @@ export class MapComponent implements OnInit, OnDestroy {
    */
   @Output() drawingType: EventEmitter<GeometryType> = new EventEmitter();
 
-  /**
-   * Edit results, the response of the applyEdits method, one of creation, update or delete operation would fire this event.
-   */
-  @Output() editResults: EventEmitter<IFeatureLayerEditsEvent> = new EventEmitter();
-
   private _sceneType: SceneType = '2D';
 
   mapUnloaded = true;
@@ -243,8 +238,27 @@ export class MapComponent implements OnInit, OnDestroy {
 
     this.layerEditHandlers = layers.map((layer) =>
       layer.on('edits', (event: IFeatureLayerEditsEvent) => {
-        this.editResults.emit(event);
-        this.sidenavService.editResponse$.next(event);
+        const isDelete = !!event.deletedFeatures.length;
+        
+        if (isDelete) {
+          this.sidenavService.deleteGraphic$.next(event);
+        } else {
+          const editResult: esri.FeatureEditResult[] =
+            Object.values(event).find((value) => Array.isArray(value) && value.length > 0) || [];
+
+          // find the related feature after edit completed, actually the attributes of the graphics is the edit request params;
+          if (!!editResult.length) {
+            const queryParams = layer.createQuery();
+
+            queryParams.objectIds = editResult.map((item) => item.objectId);
+
+            layer.queryFeatures(queryParams).then((res) => {
+              this.sidenavService.editResponse$.next({ editFeatures: res, editResults: event });
+            });
+          } else {
+            this.sidenavService.editResponse$.next({ editFeatures: null, editResults: event });
+          }
+        }
       })
     );
     this.drawService.handleDraw(this.getDrawEvents());
@@ -255,8 +269,8 @@ export class MapComponent implements OnInit, OnDestroy {
       iif(() => !!this.drawObs, this.drawObs, of(null)),
       this.sidenavService.activeNodeObs.pipe(
         map((node) => {
-          const { graphic } = node || {};
-          const { type } = graphic || {};
+          const { feature } = node || {};
+          const { type } = feature || {};
 
           return !!type ? type : null;
         })

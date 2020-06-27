@@ -60,13 +60,23 @@ const TREE_DATA: XArcgisTreeNode[] = [
         name: '子公司2',
         id: 'company_2',
         fields: [{ label: '员工人数', key: 'memberCount', controlType: 'input', type: 'number' }],
-        graphic: { type: 'point', id: 2 },
+        feature: { type: 'point', id: 2 },
       },
       { name: '公司总部', id: 'company_3' },
+      {
+        name: '东风路',
+        id: 'east_wind_road',
+        fields: [
+          { label: '长度', key: 'long', controlType: 'input', type: 'number' },
+          { label: '宽度', key: 'width', controlType: 'input', type: 'number' },
+        ],
+        feature: { type: 'polyline', id: 999, graphicIds: [44, 45, 46] },
+      },
     ],
-    graphic: {
+    feature: {
       id: '11',
       type: 'polygon',
+      graphicIds: [44, 45, 46]
     },
   },
   {

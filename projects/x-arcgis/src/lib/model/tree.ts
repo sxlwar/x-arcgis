@@ -6,8 +6,9 @@ export interface XArcgisTreeNode {
   name: string;
   children?: XArcgisTreeNode[];
   fields?: XArcgisFormField[]; // form fields config for the form displayed in the sidenav;
-  graphic?: { 
+  feature?: { 
     id?: string | number;
     type?: GeometryType;
+    graphicIds?: number[];
   };
 }

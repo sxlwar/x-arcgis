@@ -8,8 +8,8 @@ import { map, startWith, take } from 'rxjs/operators';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import {
-    Address, BaseMapConfig, DrawService, GeometryType, IFeatureLayerEditsEvent, SceneType,
-    SearchService, WidgetService, XArcgisTreeNode, XArcgisWidgets
+    Address, BaseMapConfig, DrawService, GeometryType, SceneType, SearchService, WidgetService,
+    XArcgisTreeNode, XArcgisWidgets
 } from '@x-arcgis';
 
 import { MockService } from '../providers/mock.service';
@@ -186,10 +186,6 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     if (event !== this.draw.value) {
       this.draw.setValue(event);
     }
-  }
-
-  onEdits(event: IFeatureLayerEditsEvent): void {
-    console.log('Receive edit response', event);
   }
 
   ngOnDestroy() {}

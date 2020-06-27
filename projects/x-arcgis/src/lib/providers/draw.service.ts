@@ -15,6 +15,7 @@ import { StoreService } from './store.service';
 import { WidgetService, XArcgisWidgets } from './widget.service';
 
 import esri = __esri;
+
 export enum GeometryTypeToDes {
   'point' = '点标注',
   'polyline' = '线标注',
@@ -156,7 +157,7 @@ export class DrawService extends DrawBase implements OnDestroy {
       }
 
       if (!!id) {
-        this.sidenavService.activeTreeNode(id);
+        this.sidenavService.activeNode$.next(this.sidenavService.getActiveTreeNodeById(id));
       }
 
       const { boundNodeName: preBoundNodeName, boundNodeId: preBoundNodeId } = feature.attributes;
@@ -171,7 +172,6 @@ export class DrawService extends DrawBase implements OnDestroy {
         // TODO: enable update button;
       }
 
-      this.sidenavService.editingGraphic$.next(feature);
       /**
        * Here we force the form refresh by setting the top-level data source which here is the feature, because of the widget is implemented by JSX.
        *
@@ -314,28 +314,12 @@ export class DrawService extends DrawBase implements OnDestroy {
         editable: false,
         hint: '从左侧导航栏中选择需要绑定的节点',
       },
-      { name: 'name', label: '名称', hint: '你可以为当前编辑的图形设置单独的名称' },
+      // !FIXME: confused! If remove the required field, the form state in the UI is different from the value sent to the server. 
+      { name: 'name', label: '名称', hint: '你可以为当前编辑的图形设置单独的名称', required: true },
       { name: 'description', label: '描述', editorType: 'text-area' },
     ] as esri.FieldConfig[];
   }
-
-  /**
-   * !TODO: remove this method.
-   * @deprecated Remove this
-   * Because of the relationship between node and graphic is one-to-many, so both creation and update are all allowed.
-   */
-  private getAllowedWorkFlows(): AllowedWorkFlow[] {
-    let result: AllowedWorkFlow[] = ['create', 'update'];
-
-    this.sidenavService.activeNodeObs.pipe(take(1)).subscribe((activeNode) => {
-      if (!!activeNode?.graphic?.id) {
-        result = ['update'];
-      }
-    });
-
-    return result;
-  }
-
+  
   private openSnackbar(message: string): void {
     this.snackbar.open(message, '', { duration: 3000, verticalPosition: 'top' });
   }

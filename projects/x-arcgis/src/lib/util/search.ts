@@ -38,6 +38,30 @@ export const deepSearchFactory = <T>(predicateFn: PredicateFn<T>, value: any, ke
   };
 };
 
+export const deepSearchAllFactory = <T>(predicateFn: PredicateFn<T>, value: any, key: string) => { 
+  return function deepSearchAll(data: T[], result: T[] = []): T[] {
+    const headNode = data.slice(0, 1)[0];
+    const restNodes = data.slice(1); //
+
+    // 当前节点包含指定值，存入结果
+    if (predicateFn(headNode, value)) {
+      result.push(headNode);
+    }
+
+    // 当前节点上还有子节点，优先在子节点上进行搜索，
+    if (headNode[key]) {
+      deepSearchAll(headNode[key], result);
+    }
+
+    // 继续在剩下的节点中进行搜索
+    if (restNodes.length) {
+      deepSearchAll(restNodes, result);
+    }
+
+    return result; // 遍历完成后返回累积器 
+  }
+}
+
 /**
  * @function deepSearchRecordFactory
  * @param predicateFn predicate value of the key in the node is equal to the search value;
