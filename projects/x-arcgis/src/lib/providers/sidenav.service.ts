@@ -1,5 +1,7 @@
-import { BehaviorSubject, Observable, of, Subject } from 'rxjs';
-import { distinctUntilChanged, filter, map, tap } from 'rxjs/operators';
+import { BehaviorSubject, forkJoin, Observable, of, Subject } from 'rxjs';
+import {
+    distinctUntilChanged, filter, map, mapTo, switchMap, tap, withLatestFrom
+} from 'rxjs/operators';
 
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
@@ -9,21 +11,29 @@ import { IFeatureLayerEditsEvent, XArcgisTreeNode } from '../model';
 import { deepSearchAllFactory, deepSearchFactory, PredicateFn } from '../util/search';
 
 import esri = __esri;
-interface IEditResponse {
-  editResults: IFeatureLayerEditsEvent;
-  editFeatures: esri.FeatureSet;
-}
 
-interface EditResultWithNodeInfo {
+export type BindAction = 'unbind' | 'bind';
+
+export interface NodeOperation {
   node: XArcgisTreeNode;
-  result: IFeatureLayerEditsEvent;
+  action: BindAction;
 }
 
-interface BoundRequest {
+interface EditResultWithNodeInfo<T = IFeatureLayerEditsEvent> extends NodeOperation {
+  result: T;
+}
+
+interface BindRequest {
   nodeId: number | string;
   graphicIds: number[];
-  action: 'unbind' | 'bind';
+  action: BindAction;
 }
+
+type DeleteEdits = Pick<IFeatureLayerEditsEvent, 'deletedFeatures' | 'target'>;
+
+type BindEdits = Pick<IFeatureLayerEditsEvent, 'addedFeatures' | 'updatedFeatures' | 'target'>;
+
+type UnbindEdits = Pick<IFeatureLayerEditsEvent, 'updatedFeatures' | 'target'>;
 
 @Injectable({ providedIn: 'root' })
 export class SidenavService {
@@ -31,17 +41,17 @@ export class SidenavService {
 
   activeNodeObs: Observable<XArcgisTreeNode | null>;
 
-  linkNode$: Subject<XArcgisTreeNode> = new Subject();
+  linkNode$: Subject<NodeOperation> = new Subject();
 
-  linkNodeObs: Observable<XArcgisTreeNode>;
+  linkNodeObs: Observable<NodeOperation>;
 
-  editResponse$: Subject<IEditResponse> = new Subject();
+  editResponse$: Subject<IFeatureLayerEditsEvent> = new Subject();
 
-  editResponseObs: Observable<IEditResponse>;
+  deleteResponseObs: Observable<DeleteEdits>;
 
-  deleteGraphic$: Subject<IFeatureLayerEditsEvent> = new Subject();
+  bindResponseObs: Observable<BindEdits>;
 
-  deleteGraphicObs: Observable<IFeatureLayerEditsEvent>;
+  unbindResponseObs: Observable<UnbindEdits>;
 
   private _treeNodeSourceData: XArcgisTreeNode[];
 
@@ -49,33 +59,83 @@ export class SidenavService {
     this.initObs();
   }
 
-  private initObs(): void {
-    this.activeNodeObs = this.activeNode$.asObservable().pipe(distinctUntilChanged());
-    this.linkNodeObs = this.linkNode$.asObservable();
-    this.editResponseObs = this.editResponse$.asObservable();
-    this.deleteGraphicObs = this.deleteGraphic$.asObservable();
+  getNodeById(id: string | number): XArcgisTreeNode {
+    const key: keyof XArcgisTreeNode = 'children';
+    const source = this.treeNodeSourceData;
+    const predicate: PredicateFn<XArcgisTreeNode> = (data: XArcgisTreeNode, value: string | number) =>
+      data.id === value;
+    const deepSearchFn = deepSearchFactory(predicate, id, key);
+
+    return deepSearchFn(source);
   }
 
-  /**
-   * Sent the result after one of add, delete, update operations completed of the graphic.
-   * At the same time, the related tree node also be sent out.
-   * If the node exist, may be need to bind the graphic to the node;
-   */
-  combineNodeAndGraphic(): Observable<EditResultWithNodeInfo> {
-    return this.editResponseObs.pipe(
-      map((res) => {
-        const { editFeatures, editResults } = res;
-        const { features } = editFeatures;
-        const nodeId = features[0].attributes.boundNodeId;
-        const node = !!nodeId ? this.getActiveTreeNodeById(nodeId) : null;
-
-        return { node, result: editResults };
-      }),
-      filter(({ node }) => !!node)
+  bindGraphicToNode(): Observable<any> {
+    return this.getBindNodeAndGraphic().pipe(
+      map((data) => this.getBindNodeParams(data)),
+      switchMap((params) => forkJoin(params.map((param) => this.launchBindRequest(param))))
     );
   }
 
-  updateGraphicsAfterDeleted(): Observable<{ id: number; nodes: XArcgisTreeNode[] }[]> {
+  unbindGraphicFromNode(): Observable<any> {
+    return this.getUnbindNodeAndGraphic().pipe(
+      map((data) => this.getUnbindNodeParams(data)),
+      switchMap((params) => forkJoin(params.map((param) => this.launchBindRequest(param))))
+    );
+  }
+
+  updateNodesAfterGraphicDeleted(): Observable<any> {
+    return this.findNodesAfterGraphicDeleted().pipe(
+      switchMap((data) => this.launchDeleteRequest(data.map((item) => item.id)).pipe(mapTo(data)))
+    );
+  }
+
+  private initObs(): void {
+    this.activeNodeObs = this.activeNode$.asObservable().pipe(distinctUntilChanged());
+    this.linkNodeObs = this.linkNode$.asObservable();
+    this.deleteResponseObs = this.editResponse$.asObservable().pipe(
+      map(({ deletedFeatures, target }) => ({ deletedFeatures, target })),
+      filter((data) => !!data.deletedFeatures.length)
+    );
+    this.bindResponseObs = this.editResponse$.asObservable().pipe(
+      map(({ addedFeatures, updatedFeatures, target }) => ({ addedFeatures, updatedFeatures, target })),
+      filter((data) => !!data.addedFeatures.length || !!data.updatedFeatures.length)
+    );
+    this.unbindResponseObs = this.editResponse$.asObservable().pipe(
+      map(({ updatedFeatures, target }) => ({ updatedFeatures, target })),
+      filter((data) => !!data.updatedFeatures.length)
+    );
+  }
+
+  private getBindNodeAndGraphic(): Observable<EditResultWithNodeInfo<BindEdits>> {
+    return this.updateNodeByGraphicEditRes(this.bindResponseObs).pipe(filter((opt) => opt.action === 'bind'));
+  }
+
+  private getUnbindNodeAndGraphic(): Observable<EditResultWithNodeInfo<UnbindEdits>> {
+    return this.updateNodeByGraphicEditRes(this.unbindResponseObs).pipe(filter((opt) => opt.action === 'unbind'));
+  }
+
+  /**
+   * --------e-------e------e------e---- edit res obs e: edit response
+   *
+   * -----l-------l------n------l------ link node obs l:link node n:null
+   *
+   * -------el-------el-----en-----el---- combined obs  el: edit and link node en: edit and null
+   *
+   * -------el-------el------------el---- obs need to handle
+   */
+  private updateNodeByGraphicEditRes<T>(
+    bindObs: Observable<T>,
+  ): Observable<EditResultWithNodeInfo<T>> {
+    return bindObs.pipe(
+      withLatestFrom(this.linkNodeObs.pipe(filter(opt => !!opt)), (result, data) => ({ result, ...data })),
+      filter((data) => !!data.node)
+    );
+  }
+
+  /**
+   * @returns id - graphic id; nodes - Nodes that has linked to the graphic
+   */
+  private findNodesAfterGraphicDeleted(): Observable<{ id: number; nodes: XArcgisTreeNode[] }[]> {
     const predicateFn = (node: XArcgisTreeNode, id: number) => {
       const ids = node?.feature?.graphicIds;
 
@@ -84,7 +144,7 @@ export class SidenavService {
     const key: keyof XArcgisTreeNode = 'children';
     const searchAll = (id: number) => deepSearchAllFactory(predicateFn, id, key)(this.treeNodeSourceData);
 
-    return this.deleteGraphicObs.pipe(
+    return this.deleteResponseObs.pipe(
       map((result) => {
         const { deletedFeatures } = result;
         const deletedIds = deletedFeatures.map((item) => item.objectId);
@@ -95,9 +155,9 @@ export class SidenavService {
   }
 
   // TODO: 接下来的处理取决于后台返回的结果，是返回更新后的treeNodeSource还是更新成功或失败的信息
-  launchBoundRequest(params: BoundRequest): Observable<any> {
+  private launchBindRequest(params: BindRequest): Observable<any> {
     const reqObs = this.http.post('', params);
-    const fakeReqObs = of(null);
+    const fakeReqObs = of(`${params.action} fake result`);
 
     return fakeReqObs.pipe(
       tap((_) => {
@@ -108,57 +168,38 @@ export class SidenavService {
         };
 
         this.snakeBar.open(msg[action], '', { duration: 3000, verticalPosition: 'top' });
+        this.linkNode$.next(null);
       })
     );
   }
 
   // TODO: 接下来的处理取决于后台返回的结果，是返回更新后的treeNodeSource还是更新成功或失败的信息
-  launchDeleteRequest(graphicIds: number[]): Observable<any> {
+  private launchDeleteRequest(graphicIds: number[]): Observable<any> {
     const reqObs = this.http.post('', { graphicIds });
     const fakeReqObs = of(null);
 
     return fakeReqObs;
   }
 
-  getBoundRequestParams(info: EditResultWithNodeInfo): BoundRequest[] {
-    const { node } = info;
-    const unbindIds = this.getUnboundIds(info);
-    const deleteIds = this.getRemovedIds(info);
-    const boundReq: BoundRequest = { nodeId: node.id, graphicIds: unbindIds, action: 'bind' };
-    const unbind: BoundRequest = { nodeId: node.id, graphicIds: deleteIds, action: 'unbind' };
-
-    return [boundReq, unbind];
-  }
-
-  /**
-   * @returns unbind ids;
-   */
-  private getUnboundIds(info: EditResultWithNodeInfo): number[] {
-    const { node, result } = info;
+  private getBindNodeParams(info: EditResultWithNodeInfo<BindEdits>): BindRequest[] {
+    const { node, action, result } = info;
     const { addedFeatures, updatedFeatures } = result;
     const graphicIdsOnNode = node?.feature?.graphicIds;
+    const graphicIds = [
+      ...this.findIds(addedFeatures, graphicIdsOnNode),
+      ...this.findIds(updatedFeatures, graphicIdsOnNode),
+    ];
 
-    return [...this.findIds(addedFeatures, graphicIdsOnNode), ...this.findIds(updatedFeatures, graphicIdsOnNode)];
+    return [{ nodeId: node.id, graphicIds, action }];
   }
 
-  /**
-   * @returns delete ids
-   */
-  private getRemovedIds(info: EditResultWithNodeInfo): number[] {
-    const { result, node } = info;
-    const { deletedFeatures } = result;
+  private getUnbindNodeParams(info: EditResultWithNodeInfo<UnbindEdits>): BindRequest[] {
+    const { node, action, result } = info;
+    const { updatedFeatures } = result;
+    const graphicIdsOnNode = node?.feature?.graphicIds;
+    const graphicIds = this.findIds(updatedFeatures, graphicIdsOnNode);
 
-    return this.findIds(deletedFeatures, node?.feature?.graphicIds);
-  }
-
-  private getActiveTreeNodeById(id: string | number): XArcgisTreeNode {
-    const key: keyof XArcgisTreeNode = 'children';
-    const source = this.treeNodeSourceData;
-    const predicate: PredicateFn<XArcgisTreeNode> = (data: XArcgisTreeNode, value: string | number) =>
-      data.id === value;
-    const deepSearchFn = deepSearchFactory(predicate, id, key);
-
-    return deepSearchFn(source);
+    return [{ nodeId: node.id, graphicIds, action }];
   }
 
   private findIds(result: esri.FeatureEditResult[], graphicIdsOnNode: number[]): number[] {

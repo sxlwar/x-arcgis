@@ -26,3 +26,20 @@ $bottom-space: 15px;
   top: $top-space;
   right: $right-space;
 }
+
+:host::ng-deep {
+  .esri-editor__content-group {
+    width: 90%;
+  }
+
+  .esri-feature-form__label {
+    position: relative;
+
+    #x-arcgis-unbind-node-icon {
+      position: absolute;
+      top: -2px;
+      right: 0;
+      cursor: pointer;
+    }
+  }
+}

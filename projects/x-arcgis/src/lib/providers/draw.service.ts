@@ -6,11 +6,12 @@ import {
 import { DOCUMENT } from '@angular/common';
 import { Inject, Injectable, Injector, OnDestroy, Type } from '@angular/core';
 import { createCustomElement } from '@angular/elements';
+import { MatIcon } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { Base } from '../base/base';
-import { GeometryType, IWebComponents, XArcgisTreeNode } from '../model';
-import { SidenavService } from './sidenav.service';
+import { GeometryType, IWebComponents } from '../model';
+import { NodeOperation, SidenavService } from './sidenav.service';
 import { StoreService } from './store.service';
 import { WidgetService, XArcgisWidgets } from './widget.service';
 
@@ -27,8 +28,6 @@ export abstract class DrawBase extends Base {
 }
 
 type CloseEventHandler = (view: esri.MapView, editor: esri.Editor) => (event: MouseEvent) => void;
-
-type AllowedWorkFlow = 'create' | 'update';
 
 @Injectable({ providedIn: 'root' })
 export class DrawService extends DrawBase implements OnDestroy {
@@ -49,6 +48,8 @@ export class DrawService extends DrawBase implements OnDestroy {
 
   private closeIconListener: (event: MouseEvent) => void;
 
+  private unbindIconListener: (event: MouseEvent) => void;
+
   constructor(
     private storeService: StoreService,
     private widgetService: WidgetService,
@@ -58,6 +59,7 @@ export class DrawService extends DrawBase implements OnDestroy {
     @Inject(DOCUMENT) private document: Document
   ) {
     super();
+    this.defineCustomElements();
   }
 
   /**
@@ -73,7 +75,6 @@ export class DrawService extends DrawBase implements OnDestroy {
       map((config) => config.esriMapView),
       distinctUntilChanged()
     );
-    const activeNodeObs = this.sidenavService.activeNodeObs;
     const destroy$$ = combineLatest(drawObs, viewObs)
       .pipe(takeUntil(this.storeService.destroy))
       .subscribe(([geometryType, view]) => {
@@ -82,14 +83,14 @@ export class DrawService extends DrawBase implements OnDestroy {
         }
       });
     const linkNodeObs = this.sidenavService.linkNodeObs.pipe(startWith(null));
-    const draw$$ = combineLatest(editorObs, viewObs, activeNodeObs, linkNodeObs)
+    const draw$$ = combineLatest(editorObs, viewObs, linkNodeObs)
       .pipe(
         filter(([editor]) => !!editor && !editor.destroyed),
         takeUntil(this.storeService.destroy)
       )
-      .subscribe(([editor, view, activeNode, linkNode]) => {
+      .subscribe(([editor, view, nodeOpt]) => {
         this.addCloseElement(view, editor);
-        this.checkFeatureFormViewModel(activeNode, editor, linkNode);
+        this.checkFeatureFormViewModel(editor, nodeOpt);
       });
 
     return destroy$$.add(draw$$);
@@ -132,11 +133,7 @@ export class DrawService extends DrawBase implements OnDestroy {
    * Check whether the selected graphic had bound to a node, show alerting message if bounded, set bound information to the active tree node
    * Bound information: boundNodeName and boundNodeId
    */
-  private checkFeatureFormViewModel(
-    activeNode: XArcgisTreeNode | null,
-    editor: esri.Editor,
-    linkNode: XArcgisTreeNode
-  ): void {
+  private checkFeatureFormViewModel(editor: esri.Editor, nodeOpt: NodeOperation): void {
     const model = editor.viewModel?.featureFormViewModel;
 
     if (!model) {
@@ -148,8 +145,8 @@ export class DrawService extends DrawBase implements OnDestroy {
         return;
       }
 
-      const id: string = feature.getAttribute('boundNodeId');
-      const hadBoundToAnotherNode = !!id && !!activeNode && id !== activeNode.id;
+      const id: number = feature.getAttribute('boundNodeId');
+      const hadBoundToAnotherNode = !!id && !!nodeOpt && nodeOpt.action === 'bind' && id !== nodeOpt.node.id;
 
       // The relationship between node and feature: one-to-many, a node can bind multiple features, but a feature can only be bound to a node.
       if (hadBoundToAnotherNode) {
@@ -157,28 +154,32 @@ export class DrawService extends DrawBase implements OnDestroy {
       }
 
       if (!!id) {
-        this.sidenavService.activeNode$.next(this.sidenavService.getActiveTreeNodeById(id));
+        this.sidenavService.activeNode$.next(this.sidenavService.getNodeById(id));
+        this.addUnbindElement(id);
       }
 
-      const { boundNodeName: preBoundNodeName, boundNodeId: preBoundNodeId } = feature.attributes;
-      const { name: curBoundNodeName, id: curBoundNodeId } = activeNode || {};
-      const { name: linkNodeName, id: linkNodeId } = linkNode || {};
-      const boundNodeName = curBoundNodeName || linkNodeName || preBoundNodeName;
-      const boundNodeId = curBoundNodeId || linkNodeId || preBoundNodeId;
+      if (!!nodeOpt) {
+        const {
+          node: { id, name },
+          action,
+        } = nodeOpt;
 
-      feature.attributes = { ...feature.attributes, boundNodeName, boundNodeId };
+        if (action === 'bind') {
+          feature.attributes = { ...feature.attributes, boundNodeName: name, boundNodeId: id };
+        }
 
-      if(curBoundNodeName || linkNodeName) {
-        // TODO: enable update button;
+        if (action === 'unbind') {
+          feature.attributes = { ...feature.attributes, boundNodeName: null, boundNodeId: null };
+        }
+
+        /**
+         * Here we force the form refresh by setting the top-level data source which here is the feature, because of the widget is implemented by JSX.
+         *
+         * Even though we can use graphic.setAttribute or accessor.set method to modify the attribute, it actually works, but the ui state is not
+         * consistent with the attribute.
+         */
+        model.set('feature', feature);
       }
-
-      /**
-       * Here we force the form refresh by setting the top-level data source which here is the feature, because of the widget is implemented by JSX.
-       *
-       * Even though we can use graphic.setAttribute or accessor.set method to modify the attribute, it actually works, but the ui state is not
-       * consistent with the attribute.
-       */
-      model.set('feature', feature);
     };
 
     let watchHandler = this.watchFeatureHandler;
@@ -280,6 +281,44 @@ export class DrawService extends DrawBase implements OnDestroy {
       });
   }
 
+  private addUnbindElement(boundNodeId: number): void {
+    timer(1000, 0)
+      .pipe(take(1))
+      .subscribe((_) => {
+        const boundNameControl = this.document.querySelector('.esri-feature-form__label');
+
+        if (!boundNameControl) {
+          return;
+        }
+
+        const appended = boundNameControl.querySelector('mat-icon');
+        let node = null;
+
+        if (!!appended) {
+          return;
+        }
+
+        const unbindNode = this.document.createElement('mat-icon');
+
+        unbindNode.innerText = 'link_off';
+        unbindNode['color'] = 'warn';
+        unbindNode.title = '解绑当前节点';
+
+        const listener = (nodeId: number) => (event: MouseEvent) => {
+          this.sidenavService.linkNode$.next({ node: this.sidenavService.getNodeById(nodeId), action: 'unbind' });
+        };
+
+        node = unbindNode;
+        this.unbindIconListener && node.removeEventListener('click', this.unbindIconListener);
+        // create a new event listener
+        this.unbindIconListener = listener(boundNodeId);
+        node.addEventListener('click', this.unbindIconListener);
+
+        node.id = 'x-arcgis-unbind-node-icon';
+        boundNameControl.appendChild(node);
+      });
+  }
+
   private closeEditor(view: esri.MapView, editor: esri.Editor) {
     const confirmed = window.confirm('Confirm to close this editor?');
 
@@ -314,14 +353,32 @@ export class DrawService extends DrawBase implements OnDestroy {
         editable: false,
         hint: '从左侧导航栏中选择需要绑定的节点',
       },
-      // !FIXME: confused! If remove the required field, the form state in the UI is different from the value sent to the server. 
+      // !FIXME: confused! If remove the required field, the form state in the UI is different from the value sent to the server.
       { name: 'name', label: '名称', hint: '你可以为当前编辑的图形设置单独的名称', required: true },
       { name: 'description', label: '描述', editorType: 'text-area' },
     ] as esri.FieldConfig[];
   }
-  
+
   private openSnackbar(message: string): void {
     this.snackbar.open(message, '', { duration: 3000, verticalPosition: 'top' });
+  }
+
+  private defineCustomElements(): void {
+    const unbindEle = createCustomElement(MatIcon, { injector: this.injector });
+
+    customElements.define('mat-icon', unbindEle);
+  }
+
+  /**
+   * TODO: BUG ----> if enable the button in program, 'feature-layer-source:edit-failure' error occurs
+   */
+  private allowUpdateBtn(): void {
+    const btn: HTMLButtonElement = this.document.querySelector('.esri-editor__control-button');
+
+    if (btn) {
+      btn.disabled = false;
+      btn.className = btn.className.replace('esri-button--disabled', '');
+    }
   }
 
   /**

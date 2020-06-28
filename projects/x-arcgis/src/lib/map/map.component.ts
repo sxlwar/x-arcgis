@@ -1,4 +1,4 @@
-import { from, iif, merge, Observable, of, Subject } from 'rxjs';
+import { from, Observable, of, Subject } from 'rxjs';
 import { distinctUntilChanged, map, mapTo, switchMap, takeUntil, tap } from 'rxjs/operators';
 
 import {
@@ -238,44 +238,17 @@ export class MapComponent implements OnInit, OnDestroy {
 
     this.layerEditHandlers = layers.map((layer) =>
       layer.on('edits', (event: IFeatureLayerEditsEvent) => {
-        const isDelete = !!event.deletedFeatures.length;
-        
-        if (isDelete) {
-          this.sidenavService.deleteGraphic$.next(event);
-        } else {
-          const editResult: esri.FeatureEditResult[] =
-            Object.values(event).find((value) => Array.isArray(value) && value.length > 0) || [];
-
-          // find the related feature after edit completed, actually the attributes of the graphics is the edit request params;
-          if (!!editResult.length) {
-            const queryParams = layer.createQuery();
-
-            queryParams.objectIds = editResult.map((item) => item.objectId);
-
-            layer.queryFeatures(queryParams).then((res) => {
-              this.sidenavService.editResponse$.next({ editFeatures: res, editResults: event });
-            });
-          } else {
-            this.sidenavService.editResponse$.next({ editFeatures: null, editResults: event });
-          }
-        }
+        this.sidenavService.editResponse$.next(event);
       })
     );
-    this.drawService.handleDraw(this.getDrawEvents());
+    
+    if (this.drawObs) {
+      this.drawService.handleDraw(this.getDrawEvents());
+    }
   }
 
   private getDrawEvents(): Observable<GeometryType> {
-    return merge(
-      iif(() => !!this.drawObs, this.drawObs, of(null)),
-      this.sidenavService.activeNodeObs.pipe(
-        map((node) => {
-          const { feature } = node || {};
-          const { type } = feature || {};
-
-          return !!type ? type : null;
-        })
-      )
-    ).pipe(
+    return this.drawObs.pipe(
       distinctUntilChanged(),
       tap((type) => this.drawingType.next(type))
     );
