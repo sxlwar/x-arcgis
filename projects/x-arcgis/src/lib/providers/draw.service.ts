@@ -1,22 +1,19 @@
-import { combineLatest, iif, Observable, Subscription, timer } from 'rxjs';
+import { combineLatest, iif, Observable, Subscription } from 'rxjs';
 import {
     distinctUntilChanged, filter, map, startWith, switchMap, take, takeUntil, tap
 } from 'rxjs/operators';
 
-import { DOCUMENT } from '@angular/common';
-import { Inject, Injectable, Injector, OnDestroy, Type } from '@angular/core';
-import { createCustomElement } from '@angular/elements';
-import { MatIcon } from '@angular/material/icon';
+import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { Base } from '../base/base';
-import { GeometryType, IWebComponents } from '../model';
+import { GeometryType } from '../model';
 import { NodeOperation, SidenavService } from './sidenav.service';
 import { StoreService } from './store.service';
+import { WebComponentService } from './web-component.service';
 import { WidgetService, XArcgisWidgets } from './widget.service';
 
 import esri = __esri;
-
 export enum GeometryTypeToDes {
   'point' = '点标注',
   'polyline' = '线标注',
@@ -27,39 +24,24 @@ export abstract class DrawBase extends Base {
   abstract handleDraw(source: Observable<GeometryType>): Subscription;
 }
 
-type CloseEventHandler = (view: esri.MapView, editor: esri.Editor) => (event: MouseEvent) => void;
-
 @Injectable({ providedIn: 'root' })
-export class DrawService extends DrawBase implements OnDestroy {
+export class DrawService extends DrawBase {
   isModulesLoaded = false;
 
   private Editor: esri.EditorConstructor;
 
   private activeEditor: esri.Editor;
 
-  /**
-   * By default, we add a span element to the editor popup in order to exit the draw process
-   */
-  private closeNodeTagName = 'span';
-
-  private webComponents: IWebComponents[] = [];
-
   private watchFeatureHandler: IHandle;
-
-  private closeIconListener: (event: MouseEvent) => void;
-
-  private unbindIconListener: (event: MouseEvent) => void;
 
   constructor(
     private storeService: StoreService,
     private widgetService: WidgetService,
-    private injector: Injector,
     private sidenavService: SidenavService,
     private snackbar: MatSnackBar,
-    @Inject(DOCUMENT) private document: Document
+    private webComponentService: WebComponentService,
   ) {
     super();
-    this.defineCustomElements();
   }
 
   /**
@@ -89,31 +71,11 @@ export class DrawService extends DrawBase implements OnDestroy {
         takeUntil(this.storeService.destroy)
       )
       .subscribe(([editor, view, nodeOpt]) => {
-        this.addCloseElement(view, editor);
+        this.webComponentService.addCloseElement(view, editor, this.destroyEditor.bind(this) );
         this.checkFeatureFormViewModel(editor, nodeOpt);
       });
 
     return destroy$$.add(draw$$);
-  }
-
-  /**
-   * set the html element that use for close the draw modal;
-   * component: The component that will display in to editor popup, used to exit the draw process;
-   */
-  setCloseNode(
-    // tslint: disable-next-line: no-any;
-    component: Type<any>,
-    closeEventHandler: CloseEventHandler = this.closeEditor.bind(this),
-    closeNodeTagName = 'close-element'
-  ): void {
-    const CloseElement = createCustomElement(component, { injector: this.injector });
-
-    customElements.define(closeNodeTagName, CloseElement);
-
-    const node = this.document.createElement(closeNodeTagName);
-
-    this.closeNodeTagName = closeNodeTagName;
-    this.webComponents.push({ tagName: closeNodeTagName, node, listener: closeEventHandler });
   }
 
   destroyEditor(view: esri.MapView | esri.SceneView, editor?: esri.Editor): void {
@@ -155,7 +117,7 @@ export class DrawService extends DrawBase implements OnDestroy {
 
       if (!!id) {
         this.sidenavService.activeNode$.next(this.sidenavService.getNodeById(id));
-        this.addUnbindElement(id);
+        this.webComponentService.addUnbindElement(id);
       }
 
       if (!!nodeOpt) {
@@ -235,98 +197,6 @@ export class DrawService extends DrawBase implements OnDestroy {
     );
   }
 
-  private addCloseElement(view: esri.MapView, editor: esri.Editor) {
-    timer(1000, 0)
-      .pipe(take(1))
-      .subscribe((_) => {
-        const header = this.document.querySelector('.esri-editor__header');
-
-        if (!header) {
-          return;
-        }
-
-        const appended = header.querySelector(this.closeNodeTagName);
-        let node = null;
-
-        if (!!appended) {
-          return;
-        }
-
-        if (this.closeNodeTagName === 'span') {
-          const listener = this.closeEditor.bind(this);
-
-          node = this.document.createElement(this.closeNodeTagName);
-          node.innerText = '退出';
-          node.className = 'close-editor';
-          node.style.cssText = 'cursor:pointer;';
-          node.setAttribute('title', '退出编辑');
-          this.closeIconListener && node.removeEventListener('click', this.closeIconListener);
-          this.closeIconListener = () => listener(view, editor);
-          node.addEventListener('click', this.closeIconListener);
-          this.webComponents.push({ tagName: this.closeNodeTagName, node, listener });
-        } else {
-          const index = this.webComponents.findIndex((item) => (item.tagName = this.closeNodeTagName));
-          const { tagName, listener, node: closeNode } = this.webComponents[index];
-          node = closeNode;
-          // the node element only created once, so we must remove the listener first;
-          this.closeIconListener && node.removeEventListener('click', this.closeIconListener);
-          // create a new event listener
-          this.closeIconListener = listener(view, editor);
-          node.addEventListener('click', this.closeIconListener);
-          this.webComponents[index] = { tagName, node, listener };
-        }
-
-        node.id = 'x-arcgis-close-editor-icon';
-        header.appendChild(node);
-      });
-  }
-
-  private addUnbindElement(boundNodeId: number): void {
-    timer(1000, 0)
-      .pipe(take(1))
-      .subscribe((_) => {
-        const boundNameControl = this.document.querySelector('.esri-feature-form__label');
-
-        if (!boundNameControl) {
-          return;
-        }
-
-        const appended = boundNameControl.querySelector('mat-icon');
-        let node = null;
-
-        if (!!appended) {
-          return;
-        }
-
-        const unbindNode = this.document.createElement('mat-icon');
-
-        unbindNode.innerText = 'link_off';
-        unbindNode['color'] = 'warn';
-        unbindNode.title = '解绑当前节点';
-
-        const listener = (nodeId: number) => (event: MouseEvent) => {
-          this.sidenavService.linkNode$.next({ node: this.sidenavService.getNodeById(nodeId), action: 'unbind' });
-        };
-
-        node = unbindNode;
-        this.unbindIconListener && node.removeEventListener('click', this.unbindIconListener);
-        // create a new event listener
-        this.unbindIconListener = listener(boundNodeId);
-        node.addEventListener('click', this.unbindIconListener);
-
-        node.id = 'x-arcgis-unbind-node-icon';
-        boundNameControl.appendChild(node);
-      });
-  }
-
-  private closeEditor(view: esri.MapView, editor: esri.Editor) {
-    const confirmed = window.confirm('Confirm to close this editor?');
-
-    if (confirmed) {
-      this.destroyEditor(view, editor);
-    }
-  }
-
   private getLayerInfos(map: esri.Map, currentGeometryType: GeometryType): esri.LayerInfo[] {
     const result: esri.LayerInfo[] = [];
 
@@ -363,32 +233,15 @@ export class DrawService extends DrawBase implements OnDestroy {
     this.snackbar.open(message, '', { duration: 3000, verticalPosition: 'top' });
   }
 
-  private defineCustomElements(): void {
-    const unbindEle = createCustomElement(MatIcon, { injector: this.injector });
-
-    customElements.define('mat-icon', unbindEle);
-  }
-
   /**
    * TODO: BUG ----> if enable the button in program, 'feature-layer-source:edit-failure' error occurs
    */
-  private allowUpdateBtn(): void {
-    const btn: HTMLButtonElement = this.document.querySelector('.esri-editor__control-button');
+  // private allowUpdateBtn(): void {
+  //   const btn: HTMLButtonElement = this.document.querySelector('.esri-editor__control-button');
 
-    if (btn) {
-      btn.disabled = false;
-      btn.className = btn.className.replace('esri-button--disabled', '');
-    }
-  }
-
-  /**
-   * Release source before service destroy;
-   */
-  ngOnDestroy() {
-    this.webComponents.forEach((item) => {
-      item.node.removeEventListener('click', item.listener);
-    });
-
-    this.webComponents = null;
-  }
+  //   if (btn) {
+  //     btn.disabled = false;
+  //     btn.className = btn.className.replace('esri-button--disabled', '');
+  //   }
+  // }
 }

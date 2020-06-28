@@ -31,6 +31,13 @@ export class TreeComponent implements OnInit {
 
   hasChild = (_: number, node: XArcgisTreeNode) => !!node.children && node.children.length > 0;
 
+  /**
+   * bind button has two state: 
+   * 1. bind - in this state we need to send the bind action to linkObs
+   * 2. reset - in this state we need cancel binding.
+   */
+  action: string;
+
   constructor(public sidenavService: SidenavService) {}
 
   ngOnInit(): void {

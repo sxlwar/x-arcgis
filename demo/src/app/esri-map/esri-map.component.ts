@@ -12,6 +12,9 @@ import {
     XArcgisTreeNode, XArcgisWidgets
 } from '@x-arcgis';
 
+import {
+    WebComponentService
+} from '../../../../projects/x-arcgis/src/lib/providers/web-component.service';
 import { MockService } from '../providers/mock.service';
 
 import esri = __esri;
@@ -120,7 +123,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     private drawService: DrawService,
     private widgetService: WidgetService,
     private modalService: NzModalService,
-    private mockService: MockService
+    private mockService: MockService,
+    private webComponentService: WebComponentService
   ) {}
 
   ngOnInit() {
@@ -130,7 +134,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
     this.listOfOption = this.searchService.getFuzzyMatchList(this.search.valueChanges as Observable<string>);
 
-    this.drawService.setCloseNode(CloseComponent, (view, editor) => (event) => {
+    this.webComponentService.setCloseNode(CloseComponent, (view, editor) => (event) => {
       this.modalService.confirm({
         nzTitle: '<i>信息提示?</i>',
         nzContent: '<b>确定要退出编辑吗？</b>',
