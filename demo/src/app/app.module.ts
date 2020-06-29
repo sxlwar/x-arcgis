@@ -20,14 +20,36 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CloseComponent, EsriMapComponent } from './esri-map/esri-map.component';
 
+import esri = __esri;
+
 registerLocaleData(zh);
+
+const baseLayers: esri.FeatureLayerProperties[] = [
+  {
+    id: `point_layer`,
+    geometryType: 'point',
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/sxlwar/FeatureServer',
+  },
+  {
+    id: `polyline_layer`,
+    geometryType: 'polyline',
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/lines/FeatureServer',
+  },
+  {
+    id: `polygon_layer`,
+    geometryType: 'polygon',
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polygon/FeatureServer',
+  },
+];
 
 @NgModule({
   declarations: [AppComponent, EsriMapComponent, CloseComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
-    XArcgisModule,
+    XArcgisModule.forRoot({
+      baseLayers,
+    }),
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,

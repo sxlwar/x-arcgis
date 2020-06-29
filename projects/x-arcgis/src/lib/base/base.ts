@@ -4,8 +4,6 @@ import { from, Observable } from 'rxjs';
 import esri = __esri;
 
 export abstract class Base {
-  protected readonly layerIDSuffix = 'layer';
-
   protected readonly host = 'cloud.gisnet.cn';
 
   protected readonly api = `http://${this.host}:8585/Rest/api`;

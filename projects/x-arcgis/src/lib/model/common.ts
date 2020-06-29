@@ -13,3 +13,7 @@ export interface IHandle {
 }
 
 export type IFeatureLayerEditsEvent = esri.FeatureLayerEditsEvent & { target: esri.FeatureLayer };
+
+export interface ConfigOption {
+  baseLayers: esri.FeatureLayerProperties[];
+}

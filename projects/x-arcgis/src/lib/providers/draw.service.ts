@@ -237,7 +237,6 @@ export class DrawService extends DrawBase {
     const result: esri.LayerInfo[] = [];
 
     map.layers
-      // .filter((layer) => layer.id.includes(this.layerIDSuffix))
       .forEach((layer) => {
         const config = {
           layer,
@@ -251,6 +250,9 @@ export class DrawService extends DrawBase {
     return result;
   }
 
+  /**
+   * TODO: 由业务层根据需要设置此配置，可以根据不同的layer显示不同的字段。
+   */
   private getFieldConfig(): esri.FieldConfig[] {
     return [
       {

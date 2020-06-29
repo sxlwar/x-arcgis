@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClientJsonpModule, HttpClientModule } from '@angular/common/http';
-import { NgModule } from '@angular/core';
+import { ModuleWithProviders, NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -15,6 +15,8 @@ import { MatTreeModule } from '@angular/material/tree';
 import { DynamicFormFieldComponent } from './dynamic-form-field/dynamic-form-field.component';
 import { DynamicFormComponent } from './dynamic-form/dynamic-form.component';
 import { MapComponent } from './map/map.component';
+import { ConfigOption } from './model';
+import { X_ARCGIS_CONFIG } from './providers';
 import { DynamicFormFieldService } from './providers/dynamic-form.service';
 import { SidenavComponent } from './sidenav/sidenav.component';
 import { TreeFormComponent } from './tree-form/tree-form.component';
@@ -47,4 +49,13 @@ import { TreeComponent } from './tree/tree.component';
   exports: [MapComponent, SidenavComponent],
   providers: [DynamicFormFieldService],
 })
-export class XArcgisModule {}
+export class XArcgisModule {
+  static forRoot(config: ConfigOption): ModuleWithProviders<XArcgisModule> { 
+    return {
+      ngModule: XArcgisModule,
+      providers: [
+        { provide: X_ARCGIS_CONFIG, useValue: config },
+      ]
+    }
+  }
+}
