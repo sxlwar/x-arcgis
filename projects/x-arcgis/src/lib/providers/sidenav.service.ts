@@ -1,4 +1,4 @@
-import { BehaviorSubject, forkJoin, Observable, of, Subject } from 'rxjs';
+import { BehaviorSubject, forkJoin, merge, Observable, of, Subject } from 'rxjs';
 import {
     distinctUntilChanged, filter, map, mapTo, switchMap, tap, withLatestFrom
 } from 'rxjs/operators';
@@ -12,11 +12,15 @@ import { deepSearchAllFactory, deepSearchFactory, PredicateFn } from '../util/se
 
 import esri = __esri;
 
-export type BindAction = 'unbind' | 'bind';
+export type BindAction = 'unbind' | 'bind' | 'reset';
 
 export interface NodeOperation {
   node: XArcgisTreeNode;
   action: BindAction;
+}
+
+export interface AutoUnbindNodeOperation extends NodeOperation {
+  graphicId: number;
 }
 
 interface EditResultWithNodeInfo<T = IFeatureLayerEditsEvent> extends NodeOperation {
@@ -41,9 +45,9 @@ export class SidenavService {
 
   activeNodeObs: Observable<XArcgisTreeNode | null>;
 
-  linkNode$: Subject<NodeOperation> = new Subject();
+  linkNode$: Subject<NodeOperation | null> = new Subject();
 
-  linkNodeObs: Observable<NodeOperation>;
+  linkNodeObs: Observable<NodeOperation | null>;
 
   editResponse$: Subject<IFeatureLayerEditsEvent> = new Subject();
 
@@ -52,6 +56,10 @@ export class SidenavService {
   bindResponseObs: Observable<BindEdits>;
 
   unbindResponseObs: Observable<UnbindEdits>;
+
+  autoUnbind$: Subject<AutoUnbindNodeOperation | null> = new Subject();
+
+  private autoUnbindObs: Observable<EditResultWithNodeInfo<UnbindEdits>>;
 
   private _treeNodeSourceData: XArcgisTreeNode[];
 
@@ -104,6 +112,30 @@ export class SidenavService {
       map(({ updatedFeatures, target }) => ({ updatedFeatures, target })),
       filter((data) => !!data.updatedFeatures.length)
     );
+    this.autoUnbindObs = this.getBindNodeAndGraphic().pipe(
+      withLatestFrom(this.autoUnbind$, (data, autoUnbindOpt) => {
+        /**
+         * the following 3 conditions are met, need to unbind a graphic from a node automatically.
+         * 1. A bind operation occurs
+         * 2. Auto unbind observable send notification;
+         * 3. This graph ID still exists in the graph list on the node
+         */
+        if (!autoUnbindOpt) {
+          return null;
+        }
+
+        const {
+          result: { updatedFeatures, target },
+        } = data;
+        const { node: autoNode, graphicId, action } = autoUnbindOpt;
+        const targetGraphic = updatedFeatures.find((item) => item.objectId === graphicId);
+
+        return !!targetGraphic && autoNode?.feature?.graphicIds.includes(graphicId)
+          ? { node: autoNode, action, result: { updatedFeatures: [targetGraphic], target } }
+          : null;
+      }),
+      filter((data) => !!data)
+    );
   }
 
   private getBindNodeAndGraphic(): Observable<EditResultWithNodeInfo<BindEdits>> {
@@ -111,7 +143,11 @@ export class SidenavService {
   }
 
   private getUnbindNodeAndGraphic(): Observable<EditResultWithNodeInfo<UnbindEdits>> {
-    return this.updateNodeByGraphicEditRes(this.unbindResponseObs).pipe(filter((opt) => opt.action === 'unbind'));
+    const unbindObs = this.updateNodeByGraphicEditRes(this.unbindResponseObs).pipe(
+      filter((opt) => opt.action === 'unbind')
+    );
+
+    return merge(unbindObs, this.autoUnbindObs);
   }
 
   /**
@@ -123,11 +159,9 @@ export class SidenavService {
    *
    * -------el-------el------------el---- obs need to handle
    */
-  private updateNodeByGraphicEditRes<T>(
-    bindObs: Observable<T>,
-  ): Observable<EditResultWithNodeInfo<T>> {
+  private updateNodeByGraphicEditRes<T>(bindObs: Observable<T>): Observable<EditResultWithNodeInfo<T>> {
     return bindObs.pipe(
-      withLatestFrom(this.linkNodeObs.pipe(filter(opt => !!opt)), (result, data) => ({ result, ...data })),
+      withLatestFrom(this.linkNodeObs.pipe(filter((opt) => !!opt)), (result, data) => ({ result, ...data })),
       filter((data) => !!data.node)
     );
   }
@@ -169,7 +203,8 @@ export class SidenavService {
 
         this.snakeBar.open(msg[action], '', { duration: 3000, verticalPosition: 'top' });
         this.linkNode$.next(null);
-      })
+      }),
+      map((msg) => ({ msg, params }))
     );
   }
 

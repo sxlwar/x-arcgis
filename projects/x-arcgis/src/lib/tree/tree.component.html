@@ -7,14 +7,7 @@
       <!-- use a disabled button to provide padding for tree leaf -->
       <button mat-icon-button disabled style="width: 2.5em;"></button>
       <span>{{ node.name }}</span>
-      <button
-        mat-icon-button
-        color="primary"
-        (click)="onLinkClick(node); $event.stopPropagation()"
-        [attr.aria-label]="'bind-icon'"
-      >
-        <mat-icon>link</mat-icon>
-      </button>
+      <ng-container *ngTemplateOutlet="linkTpl; context: { node: node }"></ng-container>
     </li>
   </mat-tree-node>
   <!-- This is the tree node template for expandable nodes -->
@@ -27,14 +20,7 @@
           </mat-icon>
         </button>
         <span>{{ node.name }}</span>
-        <button
-          mat-icon-button
-          color="primary"
-          (click)="onLinkClick(node); $event.stopPropagation()"
-          [attr.aria-label]="'bind-icon'"
-        >
-          <mat-icon>link</mat-icon>
-        </button>
+        <ng-container *ngTemplateOutlet="linkTpl; context: { node: node }"></ng-container>
       </div>
       <ul [class.x-arcgis-tree-invisible]="!treeControl.isExpanded(node)">
         <ng-container matTreeNodeOutlet></ng-container>
@@ -42,3 +28,26 @@
     </li>
   </mat-nested-tree-node>
 </mat-tree>
+
+<ng-template #linkTpl let-node="node">
+  <button
+    *ngIf="
+      !operation || (operation && (operation.node !== node || (operation.node === node && operation.action !== 'bind')))
+    "
+    mat-icon-button
+    color="primary"
+    (click)="onLinkClick(node); $event.stopPropagation()"
+    [attr.aria-label]="'bind-icon'"
+  >
+    <mat-icon>link</mat-icon>
+  </button>
+  <button
+    *ngIf="!!operation && operation.node === node && operation.action === 'bind'"
+    mat-icon-button
+    color="accent"
+    (click)="onResetClick(node); $event.stopPropagation()"
+    [attr.arial-label]="'reset-icon'"
+  >
+    <mat-icon>settings_backup_restore</mat-icon>
+  </button>
+</ng-template>

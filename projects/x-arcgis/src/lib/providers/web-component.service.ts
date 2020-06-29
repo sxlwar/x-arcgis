@@ -131,7 +131,17 @@ export class WebComponentService implements OnDestroy {
         unbindNode.title = '解绑当前节点';
 
         const listener = (nodeId: number) => (event: MouseEvent) => {
-          this.sidenavService.linkNode$.next({ node: this.sidenavService.getNodeById(nodeId), action: 'unbind' });
+          if (unbindNode.innerText === 'link_off') {
+            unbindNode.innerText = 'settings_backup_restore';
+            unbindNode.title = '取消';
+            this.sidenavService.linkNode$.next({ node: this.sidenavService.getNodeById(nodeId), action: 'unbind' });
+          } else {
+            unbindNode.innerText = 'link_off';
+            unbindNode.title = '解绑当前节点';
+            this.sidenavService.linkNode$.next({ node: this.sidenavService.getNodeById(nodeId), action: 'reset' });
+          }
+
+          this.focus();
         };
 
         node = unbindNode;
@@ -149,6 +159,21 @@ export class WebComponentService implements OnDestroy {
     const unbindEle = createCustomElement(MatIcon, { injector: this.injector });
 
     customElements.define('mat-icon', unbindEle);
+  }
+
+  /**
+   * Let an input element of the form in the editor get focus in order to update the form value to the newest state.
+   */
+  focus() {
+    const inputEleList = this.document
+      .querySelector<HTMLFormElement>('.esri-feature-form__form')
+      .querySelectorAll<HTMLInputElement>('input');
+
+    try {
+      inputEleList[1].focus();
+    } catch (error) {
+      console.warn(error.toString());
+    }
   }
 
   /**

@@ -8,7 +8,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { Base } from '../base/base';
 import { GeometryType } from '../model';
-import { NodeOperation, SidenavService } from './sidenav.service';
+import {
+    AutoUnbindNodeOperation, BindAction, NodeOperation, SidenavService
+} from './sidenav.service';
 import { StoreService } from './store.service';
 import { WebComponentService } from './web-component.service';
 import { WidgetService, XArcgisWidgets } from './widget.service';
@@ -28,18 +30,22 @@ export abstract class DrawBase extends Base {
 export class DrawService extends DrawBase {
   isModulesLoaded = false;
 
+  autoUnbind: AutoUnbindNodeOperation = null;
+
   private Editor: esri.EditorConstructor;
 
   private activeEditor: esri.Editor;
 
   private watchFeatureHandler: IHandle;
 
+  private originGraphicAttributes: any = null;
+
   constructor(
     private storeService: StoreService,
     private widgetService: WidgetService,
     private sidenavService: SidenavService,
     private snackbar: MatSnackBar,
-    private webComponentService: WebComponentService,
+    private webComponentService: WebComponentService
   ) {
     super();
   }
@@ -71,7 +77,7 @@ export class DrawService extends DrawBase {
         takeUntil(this.storeService.destroy)
       )
       .subscribe(([editor, view, nodeOpt]) => {
-        this.webComponentService.addCloseElement(view, editor, this.destroyEditor.bind(this) );
+        this.webComponentService.addCloseElement(view, editor, this.destroyEditor.bind(this));
         this.checkFeatureFormViewModel(editor, nodeOpt);
       });
 
@@ -89,6 +95,7 @@ export class DrawService extends DrawBase {
     }
 
     this.sidenavService.linkNode$.next(null);
+    this.originGraphicAttributes = null;
   }
 
   /**
@@ -102,21 +109,39 @@ export class DrawService extends DrawBase {
       return;
     }
 
+    // indicate that watcher function is called by arcgis or not.
+    let isWatcherLaunchedByArcgis = false;
+
     const watcher = (feature: esri.Graphic) => {
       if (!feature) {
         return;
       }
 
       const id: number = feature.getAttribute('boundNodeId');
-      const hadBoundToAnotherNode = !!id && !!nodeOpt && nodeOpt.action === 'bind' && id !== nodeOpt.node.id;
+
+      if (isWatcherLaunchedByArcgis) {
+        this.originGraphicAttributes = feature.attributes;
+      }
+
+      const originBoundNodeId = this.originGraphicAttributes?.boundNodeId;
+      const hadBoundToAnotherNode =
+        !!originBoundNodeId && !!nodeOpt && nodeOpt.action === 'bind' && originBoundNodeId !== nodeOpt.node.id;
 
       // The relationship between node and feature: one-to-many, a node can bind multiple features, but a feature can only be bound to a node.
       if (hadBoundToAnotherNode) {
-        this.openSnackbar(`此图形已绑定节点。节点名称：${feature.getAttribute('boundNodeName')}，节点ID：${id}`);
-      }
+        this.openSnackbar(
+          `此图形已绑定节点 - ${this.originGraphicAttributes.boundNodeName}，更新完成后原结点将自动与该图形解除绑定！`
+        );
+        const node = this.sidenavService.getNodeById(this.originGraphicAttributes.boundNodeId);
+        const action: BindAction = 'unbind';
+        // FIXME: .d.ts error， actually this method return OBJECTID of the graphic if it exists.
+        const graphicId: number = feature.getObjectId() as never;
 
-      if (!!id) {
-        this.sidenavService.activeNode$.next(this.sidenavService.getNodeById(id));
+        this.sidenavService.autoUnbind$.next({ node, action, graphicId });
+      } 
+
+      if (!!originBoundNodeId && isWatcherLaunchedByArcgis) {
+        // this.sidenavService.activeNode$.next(this.sidenavService.getNodeById(id));
         this.webComponentService.addUnbindElement(id);
       }
 
@@ -134,6 +159,14 @@ export class DrawService extends DrawBase {
           feature.attributes = { ...feature.attributes, boundNodeName: null, boundNodeId: null };
         }
 
+        if (action === 'reset') {
+          feature.attributes = {
+            ...feature.attributes,
+            boundNodeName: this.originGraphicAttributes.boundNodeName,
+            boundNodeId: this.originGraphicAttributes.boundNodeId,
+          };
+        }
+
         /**
          * Here we force the form refresh by setting the top-level data source which here is the feature, because of the widget is implemented by JSX.
          *
@@ -141,14 +174,17 @@ export class DrawService extends DrawBase {
          * consistent with the attribute.
          */
         model.set('feature', feature);
+        this.webComponentService.focus();
       }
     };
 
     let watchHandler = this.watchFeatureHandler;
 
     if (model.feature) {
+      isWatcherLaunchedByArcgis = false;
       watcher(model.feature);
     } else {
+      isWatcherLaunchedByArcgis = true;
       watchHandler = model.watch('feature', watcher);
     }
 
