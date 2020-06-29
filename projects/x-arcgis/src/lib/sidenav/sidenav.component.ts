@@ -1,4 +1,3 @@
-import { pipe } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
 
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
@@ -14,6 +13,8 @@ import { SidenavService } from '../providers/sidenav.service';
 })
 export class SidenavComponent implements OnInit, OnDestroy {
   @Input('treeSource') dataSource: XArcgisTreeNode[];
+
+  @Input() sideNavTitle = '';
 
   @Output() save: EventEmitter<any> = new EventEmitter();
 

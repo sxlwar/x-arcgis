@@ -86,12 +86,12 @@ const TREE_DATA: XArcgisTreeNode[] = [
       {
         name: '1#楼',
         id: 'building_1',
-        children: [{ name: '1单元' }, { name: '2单元' }],
+        children: [{ name: '1单元', id: 'unit_1' }, { name: '2单元', id: 'unit_2' }],
       },
       {
         name: '2#楼',
         id: 'building_2',
-        children: [{ name: '1单元' }, { name: '2单元', children: [{ name: '18楼' }] }],
+        children: [{ name: '1单元', id: 'b2_unit_1' }, { name: '2单元', id: 'b2_unit_2', children: [{ name: '18楼', id: 'b2_unit_2_floor_18' }] }],
       },
     ],
     fields: [

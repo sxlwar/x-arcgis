@@ -239,6 +239,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.layerEditHandlers = layers.map((layer) =>
       layer.on('edits', (event: IFeatureLayerEditsEvent) => {
         this.sidenavService.editResponse$.next(event);
+        this.sidenavService.highlightNode$.next(null);
       })
     );
     

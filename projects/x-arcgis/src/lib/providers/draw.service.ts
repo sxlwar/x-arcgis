@@ -95,6 +95,7 @@ export class DrawService extends DrawBase {
     }
 
     this.sidenavService.linkNode$.next(null);
+    this.sidenavService.highlightNode$.next(null);
     this.originGraphicAttributes = null;
   }
 
@@ -114,10 +115,9 @@ export class DrawService extends DrawBase {
 
     const watcher = (feature: esri.Graphic) => {
       if (!feature) {
+        this.sidenavService.highlightNode$.next(null);
         return;
       }
-
-      const id: number = feature.getAttribute('boundNodeId');
 
       if (isWatcherLaunchedByArcgis) {
         this.originGraphicAttributes = feature.attributes;
@@ -138,10 +138,15 @@ export class DrawService extends DrawBase {
         const graphicId: number = feature.getObjectId() as never;
 
         this.sidenavService.autoUnbind$.next({ node, action, graphicId });
-      } 
+      }
+
+      if (!!originBoundNodeId) {
+        this.sidenavService.highlightNode$.next(originBoundNodeId);
+      }
 
       if (!!originBoundNodeId && isWatcherLaunchedByArcgis) {
-        // this.sidenavService.activeNode$.next(this.sidenavService.getNodeById(id));
+        const id: number = feature.getAttribute('boundNodeId');
+
         this.webComponentService.addUnbindElement(id);
       }
 
@@ -153,18 +158,16 @@ export class DrawService extends DrawBase {
 
         if (action === 'bind') {
           feature.attributes = { ...feature.attributes, boundNodeName: name, boundNodeId: id };
-        }
-
-        if (action === 'unbind') {
+        } else if (action === 'unbind') {
           feature.attributes = { ...feature.attributes, boundNodeName: null, boundNodeId: null };
-        }
-
-        if (action === 'reset') {
+        } else if (action === 'reset') {
           feature.attributes = {
             ...feature.attributes,
             boundNodeName: this.originGraphicAttributes.boundNodeName,
             boundNodeId: this.originGraphicAttributes.boundNodeId,
           };
+        } else {
+          // empty logic;
         }
 
         /**
@@ -236,16 +239,15 @@ export class DrawService extends DrawBase {
   private getLayerInfos(map: esri.Map, currentGeometryType: GeometryType): esri.LayerInfo[] {
     const result: esri.LayerInfo[] = [];
 
-    map.layers
-      .forEach((layer) => {
-        const config = {
-          layer,
-          enabled: layer.get('geometryType') === currentGeometryType,
-          fieldConfig: this.getFieldConfig(),
-        } as esri.LayerInfo;
+    map.layers.forEach((layer) => {
+      const config = {
+        layer,
+        enabled: layer.get('geometryType') === currentGeometryType,
+        fieldConfig: this.getFieldConfig(),
+      } as esri.LayerInfo;
 
-        result.push(config);
-      });
+      result.push(config);
+    });
 
     return result;
   }

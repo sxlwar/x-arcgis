@@ -1,11 +1,10 @@
 header {
-  position: relative;
-  padding: 1em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1em 2px;
 
   mat-icon {
-    position: absolute;
-    top: 0;
-    right: 0;
     cursor: pointer;
   }
 }

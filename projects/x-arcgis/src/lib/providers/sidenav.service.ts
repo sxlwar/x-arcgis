@@ -11,7 +11,6 @@ import { IFeatureLayerEditsEvent, XArcgisTreeNode } from '../model';
 import { deepSearchAllFactory, deepSearchFactory, PredicateFn } from '../util/search';
 
 import esri = __esri;
-
 export type BindAction = 'unbind' | 'bind' | 'reset';
 
 export interface NodeOperation {
@@ -58,6 +57,8 @@ export class SidenavService {
   unbindResponseObs: Observable<UnbindEdits>;
 
   autoUnbind$: Subject<AutoUnbindNodeOperation | null> = new Subject();
+
+  highlightNode$: Subject<number> = new Subject();
 
   private autoUnbindObs: Observable<EditResultWithNodeInfo<UnbindEdits>>;
 
