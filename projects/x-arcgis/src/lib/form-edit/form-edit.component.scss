@@ -1,0 +1,61 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.table-control {
+  margin: 1em 0;
+}
+
+table {
+  width: 100%;
+
+  mat-form-field {
+    max-width: 8em;
+  }
+
+  th.mat-header-cell,
+  td.mat-cell {
+    padding: 0 1em;
+  }
+
+  .mat-header-cell {
+    white-space: nowrap;
+  }
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2em 0;
+  button {
+    margin-left: 1em;
+  }
+}
+
+.options-cell {
+  position: relative;
+
+  mat-form-field {
+    max-width: 5em;
+  }
+}
+
+.option-edit-container {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+
+  mat-form-field {
+    width: 40%;
+    margin-right: 2em;
+  }
+
+  mat-icon {
+    justify-self: end;
+  }
+}
+
+mat-icon {
+  cursor: pointer;
+}

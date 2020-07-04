@@ -1,0 +1,173 @@
+<div mat-dialog-title class="header">
+  <h3>{{ data.name }}</h3>
+  <mat-icon (click)="dialogRef.close(null)">close</mat-icon>
+</div>
+
+<div class="table-control">
+    <button mat-raised-button color="primary" (click)="add()">添加字段</button>
+</div>
+
+<!--TODO: field validation-->
+
+<table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+  <!--- Note that these columns can be defined in any order.
+          The actual rendered columns are set as a property on the row definition" -->
+
+  <!-- index Column -->
+  <ng-container matColumnDef="position">
+    <th mat-header-cell *matHeaderCellDef>序号</th>
+    <td mat-cell *matCellDef="let element; let i = index">{{ i + 1 }}</td>
+  </ng-container>
+
+  <!-- Name Column -->
+  <ng-container matColumnDef="label">
+    <th mat-header-cell *matHeaderCellDef>名称</th>
+    <td mat-cell *matCellDef="let element">
+      <span *ngIf="!element.editing; else editTpl">{{ element.label }}</span>
+
+      <ng-template #editTpl>
+        <mat-form-field>
+          <input matInput [(ngModel)]="element.label" />
+        </mat-form-field>
+      </ng-template>
+    </td>
+  </ng-container>
+
+  <!-- Key Column -->
+  <ng-container matColumnDef="key">
+    <th mat-header-cell *matHeaderCellDef>键名</th>
+    <td mat-cell *matCellDef="let element">
+      <span *ngIf="!element.editing; else editTpl">{{ element.key }}</span>
+      <ng-template #editTpl>
+        <mat-form-field>
+          <input matInput [(ngModel)]="element.key" />
+        </mat-form-field>
+      </ng-template>
+    </td>
+  </ng-container>
+
+  <!-- default value Column -->
+  <ng-container matColumnDef="defaultValue">
+    <th mat-header-cell *matHeaderCellDef>默认值</th>
+    <td mat-cell *matCellDef="let element">
+      <span *ngIf="!element.editing; else editTpl">{{ element.defaultValue || '无' }}</span>
+      <ng-template #editTpl>
+        <mat-form-field>
+          <input matInput [(ngModel)]="element.defaultValue" />
+        </mat-form-field>
+      </ng-template>
+    </td>
+  </ng-container>
+
+  <!-- is required Column -->
+  <ng-container matColumnDef="isRequired">
+    <th mat-header-cell *matHeaderCellDef>是否必填项</th>
+    <td mat-cell *matCellDef="let element">
+      <span *ngIf="!element.editing; else editTpl">
+        {{ element.required ? '是' : '否' }}
+      </span>
+      <ng-template #editTpl>
+        <mat-form-field style="max-width: 3em;">
+          <mat-select [(value)]="!!element.required">
+            <mat-option [value]="true">是</mat-option>
+            <mat-option [value]="false">否</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </ng-template>
+    </td>
+  </ng-container>
+
+  <!-- order Column -->
+  <ng-container matColumnDef="order">
+    <th mat-header-cell *matHeaderCellDef>优先级</th>
+    <td mat-cell *matCellDef="let element">
+      <span *ngIf="!element.editing; else editTpl">{{ element.order }}</span>
+      <ng-template #editTpl>
+        <mat-form-field style="max-width: 3em;">
+          <input matInput type="number" [(ngModel)]="element.order" />
+        </mat-form-field>
+      </ng-template>
+    </td>
+  </ng-container>
+
+  <!-- control type Column -->
+  <ng-container matColumnDef="controlType">
+    <th mat-header-cell *matHeaderCellDef>类型</th>
+    <td mat-cell *matCellDef="let element">
+      <span *ngIf="!element.editing; else editTpl">{{ element.controlType | controlType }}</span>
+      <ng-template #editTpl>
+        <mat-form-field style="max-width: 6em;">
+          <mat-select [(value)]="element.controlType" required>
+            <mat-option value="input">{{ 'input' | controlType }}</mat-option>
+            <mat-option value="textarea">{{ 'textarea' | controlType }}</mat-option>
+            <mat-option value="select">{{ 'select' | controlType }}</mat-option>
+            <mat-option value="radio">{{ 'radio' | controlType }}</mat-option>
+            <mat-option value="checkbox">{{ 'checkbox' | controlType }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </ng-template>
+    </td>
+  </ng-container>
+
+  <!-- options Column -->
+  <ng-container matColumnDef="options">
+    <th mat-header-cell *matHeaderCellDef>选项</th>
+    <td mat-cell *matCellDef="let element" class="options-cell">
+      <ng-container *ngIf="!element.editing; else editTpl">
+        <ng-container *ngIf="element.options">
+          <mat-select>
+            <mat-option *ngFor="let item of element.options" [value]="item.value">
+              {{ item.label }}
+            </mat-option>
+          </mat-select>
+        </ng-container>
+      </ng-container>
+
+      <ng-template #editTpl>
+        <ng-container
+          *ngIf="
+            element.controlType === 'select' || element.controlType === 'checkbox' || element.controlType === 'radio'
+          "
+        >
+          <div *ngFor="let item of getOptions(element); index as idx" class="option-edit-container">
+            <mat-form-field>
+              <mat-label>名称</mat-label>
+              <input matInput [(ngModel)]="item.label" required />
+            </mat-form-field>
+
+            <mat-form-field>
+              <mat-label>值</mat-label>
+              <input matInput type="number" required [(ngModel)]="item.value" />
+            </mat-form-field>
+
+            <mat-icon (click)="removeOption(idx, element)">close</mat-icon>
+          </div>
+
+          <mat-icon
+            (click)="addOption(element)"
+            class="add-option"
+            style="position: absolute; top: 50%; transform: translateY(-50%); right: 10px;"
+            >add</mat-icon
+          >
+        </ng-container>
+      </ng-template>
+    </td>
+  </ng-container>
+
+  <!-- Operation -->
+  <ng-container matColumnDef="operation">
+    <th mat-header-cell *matHeaderCellDef style="width: 80px;">操作</th>
+    <td mat-cell *matCellDef="let element; let i = index">
+      <mat-icon color="primary" (click)="edit(i)">edit</mat-icon>
+      <mat-icon color="warn" (click)="remove(i)">delete</mat-icon>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+</table>
+
+<div mat-dialog-actions class="footer">
+  <button mat-raised-button (click)="dialogRef.close(null)">取消</button>
+  <button mat-raised-button color="primary" (click)="confirm()">确定</button>
+</div>

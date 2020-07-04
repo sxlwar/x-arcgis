@@ -17,6 +17,11 @@ export abstract class XArcgisFormField<T = any> {
   value?: T;
 
   /**
+   * default value
+   */
+  defaultValue?: T;
+
+  /**
    * field key
    * The key used to query the corresponding value in the results of the form
    */
@@ -58,6 +63,7 @@ export abstract class XArcgisFormField<T = any> {
   constructor(
     options: {
       value?: T;
+      defaultValue?: T;
       key?: string;
       label?: string;
       required?: boolean;
@@ -67,6 +73,7 @@ export abstract class XArcgisFormField<T = any> {
     } = {}
   ) {
     this.value = options.value;
+    this.defaultValue = options.defaultValue;
     this.key = options.key || '';
     this.label = options.label || '';
     this.required = !!options.required;

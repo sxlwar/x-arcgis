@@ -1,7 +1,10 @@
 <ng-container *ngIf="sidenavService.activeNodeObs | async as node">
   <header>
     <h4 class="x-arcgis-tree-title">{{ node.name }}</h4>
-    <mat-icon (click)="sidenavService.activeNode$.next(null)">close</mat-icon>
+    <div>
+      <mat-icon (click)="editFields(node)">edit</mat-icon>
+      <mat-icon (click)="sidenavService.activeNode$.next(null)">close</mat-icon>
+    </div>
   </header>
 
   <x-arcgis-dynamic-form *ngIf="node.fields; else fieldsMissingTpl" [fields]="fields"></x-arcgis-dynamic-form>
