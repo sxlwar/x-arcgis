@@ -1,4 +1,4 @@
-<h4 class="x-arcgis-tree-title">{{sideNavTitle}}</h4>
+<h4 class="x-arcgis-tree-title">{{ sideNavTitle }}</h4>
 
 <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="x-arcgis-tree">
   <!-- This is the tree node template for leaf nodes -->
@@ -11,7 +11,9 @@
       <!-- use a disabled button to provide padding for tree leaf -->
       <button mat-icon-button disabled style="width: 2.5em;"></button>
       <span>{{ node.name }}</span>
-      <ng-container *ngTemplateOutlet="linkTpl; context: { node: node }"></ng-container>
+      <ng-container *ngIf="isBindIconDisplay | async">
+        <ng-container *ngTemplateOutlet="linkTpl; context: { node: node }"></ng-container>
+      </ng-container>
     </li>
   </mat-tree-node>
   <!-- This is the tree node template for expandable nodes -->
@@ -24,7 +26,9 @@
           </mat-icon>
         </button>
         <span>{{ node.name }}</span>
-        <ng-container *ngTemplateOutlet="linkTpl; context: { node: node }"></ng-container>
+        <ng-container *ngIf="isBindIconDisplay | async">
+          <ng-container *ngTemplateOutlet="linkTpl; context: { node: node }"></ng-container>
+        </ng-container>
       </div>
       <ul [class.x-arcgis-tree-invisible]="!treeControl.isExpanded(node)">
         <ng-container matTreeNodeOutlet></ng-container>

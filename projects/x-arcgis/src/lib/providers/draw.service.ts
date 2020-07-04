@@ -114,6 +114,8 @@ export class DrawService extends DrawBase {
     let isWatcherLaunchedByArcgis = false;
 
     const watcher = (feature: esri.Graphic) => {
+      this.sidenavService.showBindButton$.next(!!feature);
+      
       if (!feature) {
         this.sidenavService.highlightNode$.next(null);
         return;

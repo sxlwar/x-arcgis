@@ -1,4 +1,4 @@
-import { merge, Subscription } from 'rxjs';
+import { merge, Observable, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { ArrayDataSource } from '@angular/cdk/collections';
@@ -39,11 +39,15 @@ export class TreeComponent implements OnInit, OnDestroy {
 
   highlightNodeId: number;
 
+  isBindIconDisplay: Observable<boolean>;
+
   subscription: Subscription;
 
   constructor(public sidenavService: SidenavService) {}
 
   ngOnInit(): void {
+    this.isBindIconDisplay = this.sidenavService.showBindButton$.asObservable();
+
     const bind$$ = this.sidenavService.bindGraphicToNode().subscribe((responses) => {
       responses.forEach((res) => {
         const { nodeId, graphicIds, featureId, geometryType, success } = res;

@@ -67,6 +67,8 @@ export class SidenavService {
 
   highlightNode$: Subject<number> = new Subject();
 
+  showBindButton$: Subject<boolean> = new Subject();
+
   private autoUnbindObs: Observable<EditResultWithNodeInfo<UnbindEdits>>;
 
   private _treeNodeSourceData: XArcgisTreeNode[];
