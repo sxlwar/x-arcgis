@@ -17,7 +17,7 @@ export const deepSearchFactory = <T>(predicateFn: PredicateFn<T>, value: any, ke
     }
 
     // 当前节点上还有子节点，优先在子节点上进行搜索，
-    if (headNode[key]) {
+    if (headNode[key] && headNode[key].length) {
       const res = deepSearch(headNode[key]);
 
       if (res) {
@@ -38,7 +38,7 @@ export const deepSearchFactory = <T>(predicateFn: PredicateFn<T>, value: any, ke
   };
 };
 
-export const deepSearchAllFactory = <T>(predicateFn: PredicateFn<T>, value: any, key: string) => { 
+export const deepSearchAllFactory = <T>(predicateFn: PredicateFn<T>, value: any, key: string) => {
   return function deepSearchAll(data: T[], result: T[] = []): T[] {
     const headNode = data.slice(0, 1)[0];
     const restNodes = data.slice(1); //
@@ -49,7 +49,7 @@ export const deepSearchAllFactory = <T>(predicateFn: PredicateFn<T>, value: any,
     }
 
     // 当前节点上还有子节点，优先在子节点上进行搜索，
-    if (headNode[key]) {
+    if (headNode[key] && headNode[key].length) {
       deepSearchAll(headNode[key], result);
     }
 
@@ -58,9 +58,9 @@ export const deepSearchAllFactory = <T>(predicateFn: PredicateFn<T>, value: any,
       deepSearchAll(restNodes, result);
     }
 
-    return result; // 遍历完成后返回累积器 
-  }
-}
+    return result; // 遍历完成后返回累积器
+  };
+};
 
 /**
  * @function deepSearchRecordFactory
@@ -79,7 +79,7 @@ export const deepSearchRecordFactory = <T>(predicateFn: PredicateFn<T>, value: a
       return record;
     }
 
-    if (headNode[key]) {
+    if (headNode[key] && headNode[key].length) {
       const res = search(headNode[key], record);
 
       if (res) {

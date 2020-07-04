@@ -1,6 +1,9 @@
+import { merge, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
+
 import { ArrayDataSource } from '@angular/cdk/collections';
 import { NestedTreeControl } from '@angular/cdk/tree';
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 
 import { XArcgisTreeNode } from '../model';
 import { NodeOperation, SidenavService } from '../providers/sidenav.service';
@@ -11,12 +14,10 @@ import { deepSearchRecordFactory, searchCascadeNodes } from '../util';
   templateUrl: './tree.component.html',
   styleUrls: ['./tree.component.scss'],
 })
-export class TreeComponent implements OnInit {
+export class TreeComponent implements OnInit, OnDestroy {
   @Input() set source(input: XArcgisTreeNode[]) {
     if (!!input && input.length) {
-      this.dataSource = new ArrayDataSource(input);
-      this._source = input;
-      this.sidenavService.treeNodeSourceData = input;
+      this.setDataSource(input);
     }
   }
 
@@ -38,40 +39,71 @@ export class TreeComponent implements OnInit {
 
   highlightNodeId: number;
 
+  subscription: Subscription;
+
   constructor(public sidenavService: SidenavService) {}
 
   ngOnInit(): void {
-    // update treeNodeSource (graphic field) after graphic bind to a node;
-    this.sidenavService.bindGraphicToNode().subscribe((res) => {
-      console.log('bind result: ', res);
-      // TODO: update treeNodeSource after backend updated success;
+    const bind$$ = this.sidenavService.bindGraphicToNode().subscribe((responses) => {
+      responses.forEach((res) => {
+        const { nodeId, graphicIds, featureId, geometryType, success } = res;
+
+        if (!success) {
+          return;
+        }
+
+        const node = this.sidenavService.getNodeById(nodeId);
+
+        if (!node.feature) {
+          node.feature = {
+            id: featureId,
+            geometryType,
+            graphicIds,
+          };
+        }
+
+        if (!node.feature?.graphicIds) {
+          node.feature.graphicIds = graphicIds;
+        } else {
+          node.feature.graphicIds = [...node.feature.graphicIds, ...graphicIds];
+        }
+      });
     });
 
-    // update treeNodeSource (graphic field) after graphic unbind from a node;
-    this.sidenavService.unbindGraphicFromNode().subscribe((res) => {
-      console.log('unbind result: ', res);
-      // TODO: update treeNodeSource after backend updated success;
-    });
+    const unbind$$ = merge(this.sidenavService.unbindGraphicFromNode(), this.sidenavService.updateNodesAfterGraphicDeleted()).subscribe(
+      (responses) => {
+        responses.forEach((res) => {
+          const { nodeId, graphicIds, success } = res;
 
-    // update treeNodeSource (graphic field) after graphic deleted from the feature;
-    this.sidenavService.updateNodesAfterGraphicDeleted().subscribe((res) => {
-      console.log('deleted graphic and related node: ', res);
-      // TODO: update treeNodeSource after backend updated success;
-    });
+          if (!success) {
+            return;
+          }
 
-    this.sidenavService.linkNodeObs.subscribe((opt) => {
+          const node = this.sidenavService.getNodeById(nodeId);
+
+          node.feature.graphicIds = node.feature.graphicIds.filter((id) => !graphicIds.includes(id));
+        });
+      }
+    );
+
+    const link$$ = this.sidenavService.linkNodeObs.subscribe((opt) => {
       this.operation = opt;
     });
 
-    this.sidenavService.highlightNode$.asObservable().subscribe((id) => {
-      this.highlightNodeId = id;
+    const highlight$$ = this.sidenavService.highlightNode$
+      .asObservable()
+      .pipe(map((id) => Number(id)))
+      .subscribe((id) => {
+        this.highlightNodeId = id;
 
-      if (!!id) {
-        this.getCascadeNodes(id)
-          .slice(0, -1)
-          .forEach((node) => this.treeControl.expand(node));
-      }
-    });
+        if (!!id) {
+          this.getCascadeNodes(id)
+            .slice(0, -1)
+            .forEach((node) => this.treeControl.expand(node));
+        }
+      });
+
+    this.subscription = bind$$.add(unbind$$).add(link$$).add(highlight$$);
   }
 
   onNodeClick(node: XArcgisTreeNode): void {
@@ -86,12 +118,22 @@ export class TreeComponent implements OnInit {
     this.sidenavService.linkNode$.next({ node, action: 'reset' });
   }
 
-  private getCascadeNodes(id: number | string): XArcgisTreeNode[] {
+  private setDataSource(input: XArcgisTreeNode[]): void {
+    this.dataSource = new ArrayDataSource(input);
+    this._source = input;
+    this.sidenavService.treeNodeSourceData = input;
+  }
+
+  private getCascadeNodes(id: number): XArcgisTreeNode[] {
     const searchKey: keyof XArcgisTreeNode = 'children';
-    const fn = (data: XArcgisTreeNode, id: number | string) => data.id === id;
+    const fn = (data: XArcgisTreeNode, id: number | string) => data?.id === id;
     const deepSearchRecordFn = deepSearchRecordFactory(fn, id, searchKey);
     const records = deepSearchRecordFn(this.source);
 
     return searchCascadeNodes(this.source, records, searchKey);
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 }

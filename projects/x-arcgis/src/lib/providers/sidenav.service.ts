@@ -1,14 +1,15 @@
 import { BehaviorSubject, forkJoin, merge, Observable, of, Subject } from 'rxjs';
 import {
-    distinctUntilChanged, filter, map, mapTo, switchMap, tap, withLatestFrom
+    catchError, distinctUntilChanged, filter, map, switchMap, tap, withLatestFrom
 } from 'rxjs/operators';
 
-import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Inject, Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { IFeatureLayerEditsEvent, XArcgisTreeNode } from '../model';
+import { ConfigOption, GeometryType, IFeatureLayerEditsEvent, XArcgisTreeNode } from '../model';
 import { deepSearchAllFactory, deepSearchFactory, PredicateFn } from '../util/search';
+import { X_ARCGIS_CONFIG } from './config.service';
 
 import esri = __esri;
 export type BindAction = 'unbind' | 'bind' | 'reset';
@@ -27,9 +28,15 @@ interface EditResultWithNodeInfo<T = IFeatureLayerEditsEvent> extends NodeOperat
 }
 
 interface BindRequest {
-  nodeId: number | string;
+  nodeId: number;
   graphicIds: number[];
   action: BindAction;
+  featureId: string;
+  geometryType: GeometryType;
+}
+
+interface BindResponse extends BindRequest {
+  success: boolean;
 }
 
 type DeleteEdits = Pick<IFeatureLayerEditsEvent, 'deletedFeatures' | 'target'>;
@@ -64,37 +71,67 @@ export class SidenavService {
 
   private _treeNodeSourceData: XArcgisTreeNode[];
 
-  constructor(private http: HttpClient, private snakeBar: MatSnackBar) {
+  constructor(
+    private http: HttpClient,
+    @Inject(X_ARCGIS_CONFIG) private config: ConfigOption,
+    private snakeBar: MatSnackBar
+  ) {
     this.initObs();
   }
 
-  getNodeById(id: string | number): XArcgisTreeNode {
+  getNodeById(id: number): XArcgisTreeNode {
     const key: keyof XArcgisTreeNode = 'children';
     const source = this.treeNodeSourceData;
     const predicate: PredicateFn<XArcgisTreeNode> = (data: XArcgisTreeNode, value: string | number) =>
-      data.id === value;
+      data.id === +value;
     const deepSearchFn = deepSearchFactory(predicate, id, key);
 
     return deepSearchFn(source);
   }
 
-  bindGraphicToNode(): Observable<any> {
+  bindGraphicToNode(): Observable<BindResponse[]> {
     return this.getBindNodeAndGraphic().pipe(
       map((data) => this.getBindNodeParams(data)),
+      filter((params) => !!params),
       switchMap((params) => forkJoin(params.map((param) => this.launchBindRequest(param))))
     );
   }
 
-  unbindGraphicFromNode(): Observable<any> {
+  unbindGraphicFromNode(): Observable<BindResponse[]> {
     return this.getUnbindNodeAndGraphic().pipe(
       map((data) => this.getUnbindNodeParams(data)),
+      filter((params) => !!params),
       switchMap((params) => forkJoin(params.map((param) => this.launchBindRequest(param))))
     );
   }
 
-  updateNodesAfterGraphicDeleted(): Observable<any> {
+  updateNodesAfterGraphicDeleted(): Observable<BindResponse[]> {
     return this.findNodesAfterGraphicDeleted().pipe(
-      switchMap((data) => this.launchDeleteRequest(data.map((item) => item.id)).pipe(mapTo(data)))
+      switchMap((data) => {
+        const requests: BindRequest[] = data
+          .map((item) => {
+            const { id: graphicId, nodes } = item;
+
+            return nodes.map((node) => {
+              const {
+                feature: { id: featureId, geometryType },
+                id,
+              } = node;
+              const request: BindRequest = {
+                nodeId: id,
+                graphicIds: [graphicId],
+                action: 'unbind',
+                featureId,
+                geometryType,
+              };
+
+              return request;
+            });
+          })
+          .reduce((acc, cur) => [...acc, ...cur], []);
+
+        return forkJoin(requests.map((req) => this.launchBindRequest(req)));
+      })
     );
   }
 
@@ -189,53 +226,69 @@ export class SidenavService {
     );
   }
 
-  // TODO: 接下来的处理取决于后台返回的结果，是返回更新后的treeNodeSource还是更新成功或失败的信息
-  private launchBindRequest(params: BindRequest): Observable<any> {
-    const reqObs = this.http.post('', params);
-    const fakeReqObs = of(`${params.action} fake result`);
+  private launchBindRequest(params: BindRequest): Observable<BindResponse> {
+    const { bindUrl, unbindUrl } = this.config;
+    const { action, nodeId, featureId, graphicIds, geometryType } = params;
+    const url = action === 'bind' ? bindUrl : unbindUrl;
+    const body = { id: nodeId, feature: { id: featureId, geometryType, graphicIds, action } };
+    const getTipMsg = (isSuccess: boolean, action: string): string => {
+      const msg = {
+        unbind: '解绑',
+        bind: '绑定',
+      };
 
-    return fakeReqObs.pipe(
-      tap((_) => {
-        const { action } = params;
-        const msg = {
-          unbind: '解绑成功',
-          bind: '绑定成功',
-        };
+      return `${msg[action]}${isSuccess ? '成功' : '失败'}`;
+    };
 
-        this.snakeBar.open(msg[action], '', { duration: 3000, verticalPosition: 'top' });
+    return this.http.post<boolean>(url, body).pipe(
+      tap((res) => {
+        this.snakeBar.open(getTipMsg(res, action), '', { duration: 3000, verticalPosition: 'top' });
         this.linkNode$.next(null);
       }),
-      map((msg) => ({ msg, params }))
+      map((res) => ({ ...params, success: res })),
+      catchError((err: HttpErrorResponse) => {
+        console.error(err.message);
+
+        return of(null);
+      })
     );
-  }
-
-  // TODO: 接下来的处理取决于后台返回的结果，是返回更新后的treeNodeSource还是更新成功或失败的信息
-  private launchDeleteRequest(graphicIds: number[]): Observable<any> {
-    const reqObs = this.http.post('', { graphicIds });
-    const fakeReqObs = of(null);
-
-    return fakeReqObs;
   }
 
   private getBindNodeParams(info: EditResultWithNodeInfo<BindEdits>): BindRequest[] {
     const { node, action, result } = info;
-    const { addedFeatures, updatedFeatures } = result;
+    const { addedFeatures, updatedFeatures, target } = result;
     const graphicIdsOnNode = node?.feature?.graphicIds;
     const graphicIds = [
       ...this.findIds(addedFeatures, graphicIdsOnNode),
       ...this.findIds(updatedFeatures, graphicIdsOnNode),
     ];
 
-    return [{ nodeId: node.id, graphicIds, action }];
+    if (!graphicIds.length) {
+      return null;
+    }
+
+    return [{ nodeId: node.id, graphicIds, action, featureId: target.id, geometryType: target.geometryType }];
   }
 
   private getUnbindNodeParams(info: EditResultWithNodeInfo<UnbindEdits>): BindRequest[] {
     const { node, action, result } = info;
-    const { updatedFeatures } = result;
+    const { updatedFeatures, target } = result;
     const graphicIdsOnNode = node?.feature?.graphicIds;
-    const graphicIds = this.findIds(updatedFeatures, graphicIdsOnNode);
+    const graphicIds = updatedFeatures
+      .map((item) => item.objectId)
+      .filter((id) => (!!graphicIdsOnNode ? graphicIdsOnNode.includes(id) : null));
 
-    return [{ nodeId: node.id, graphicIds, action }];
+    if (!graphicIds.length) {
+      console.warn(
+        'There is no bound graphic on this node, or the graphic to be unbound does not bound to this node yet!',
+        `The node bounded graphics: ${graphicIdsOnNode}`,
+        `The graphics to be unbounded: ${updatedFeatures.map((item) => item.objectId)}`
+      );
+
+      return null;
+    }
+
+    return [{ nodeId: node.id, graphicIds, action, featureId: target.id, geometryType: target.geometryType }];
   }
 
   private findIds(result: esri.FeatureEditResult[], graphicIdsOnNode: number[]): number[] {

@@ -15,10 +15,9 @@ import {
 import {
     WebComponentService
 } from '../../../../projects/x-arcgis/src/lib/providers/web-component.service';
-import { MockService } from '../providers/mock.service';
+import { ApiService } from '../providers/api.service';
 
 import esri = __esri;
-
 @Component({
   selector: 'close-icon',
   template: '<i nz-icon nzType="close" nzTheme="outline" (click)="onClick()"></i>',
@@ -123,12 +122,12 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     private drawService: DrawService,
     private widgetService: WidgetService,
     private modalService: NzModalService,
-    private mockService: MockService,
-    private webComponentService: WebComponentService
+    private webComponentService: WebComponentService,
+    private apiService: ApiService,
   ) {}
 
   ngOnInit() {
-    this.treeSource = this.mockService.getTree();
+    this.treeSource = this.apiService.getTreeNodes();
 
     this.basemapObs = this.basemapObs$.asObservable().pipe(startWith(this.activeBaseMap));
 
