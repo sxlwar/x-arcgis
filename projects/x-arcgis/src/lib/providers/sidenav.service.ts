@@ -7,7 +7,10 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { ConfigOption, GeometryType, IFeatureLayerEditsEvent, XArcgisTreeNode } from '../model';
+import {
+    ConfigOption, GeometryType, IFeatureLayerEditsEvent, UpdateTreeNodeRequest,
+    UpdateTreeNodeResponse, XArcgisTreeNode
+} from '../model';
 import { deepSearchAllFactory, deepSearchFactory, PredicateFn } from '../util/search';
 import { X_ARCGIS_CONFIG } from './config.service';
 
@@ -137,6 +140,10 @@ export class SidenavService {
     );
   }
 
+  updateNodeFields(req: UpdateTreeNodeRequest): Observable<UpdateTreeNodeResponse> {
+    return this.http.post<boolean>(this.config.nodeUpdateUrl, req);
+  }
+
   private initObs(): void {
     this.activeNodeObs = this.activeNode$.asObservable().pipe(distinctUntilChanged());
     this.linkNodeObs = this.linkNode$.asObservable();
@@ -229,10 +236,12 @@ export class SidenavService {
   }
 
   private launchBindRequest(params: BindRequest): Observable<BindResponse> {
-    const { bindUrl, unbindUrl } = this.config;
+    const { nodeUpdateUrl } = this.config;
     const { action, nodeId, featureId, graphicIds, geometryType } = params;
-    const url = action === 'bind' ? bindUrl : unbindUrl;
-    const body = { id: nodeId, feature: { id: featureId, geometryType, graphicIds, action } };
+    const body = {
+      id: nodeId,
+      feature: { id: featureId, geometryType, graphicIds, action },
+    } as UpdateTreeNodeRequest;
     const getTipMsg = (isSuccess: boolean, action: string): string => {
       const msg = {
         unbind: '解绑',
@@ -242,7 +251,7 @@ export class SidenavService {
       return `${msg[action]}${isSuccess ? '成功' : '失败'}`;
     };
 
-    return this.http.post<boolean>(url, body).pipe(
+    return this.http.post<boolean>(nodeUpdateUrl, body).pipe(
       tap((res) => {
         this.snakeBar.open(getTipMsg(res, action), '', { duration: 3000, verticalPosition: 'top' });
         this.linkNode$.next(null);

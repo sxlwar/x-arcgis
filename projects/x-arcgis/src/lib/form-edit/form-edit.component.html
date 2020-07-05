@@ -7,8 +7,6 @@
     <button mat-raised-button color="primary" (click)="add()">添加字段</button>
 </div>
 
-<!--TODO: field validation-->
-
 <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
   <!--- Note that these columns can be defined in any order.
           The actual rendered columns are set as a property on the row definition" -->
@@ -27,7 +25,8 @@
 
       <ng-template #editTpl>
         <mat-form-field>
-          <input matInput [(ngModel)]="element.label" />
+          <input matInput [(ngModel)]="element.label" #fieldLabel="ngModel" required/>
+          <mat-error *ngIf="fieldLabel.hasError('required')">此字段为必填项</mat-error>
         </mat-form-field>
       </ng-template>
     </td>
@@ -40,7 +39,9 @@
       <span *ngIf="!element.editing; else editTpl">{{ element.key }}</span>
       <ng-template #editTpl>
         <mat-form-field>
-          <input matInput [(ngModel)]="element.key" />
+          <input matInput [(ngModel)]="element.key" #fieldKey="ngModel" fieldKey required />
+          <mat-error *ngIf="fieldKey.hasError('format') && !fieldKey.hasError('required')">{{fieldKey.errors.format.hint}}</mat-error>
+          <mat-error *ngIf="fieldKey.hasError('required')">此字段为必填项</mat-error>
         </mat-form-field>
       </ng-template>
     </td>
@@ -79,7 +80,10 @@
 
   <!-- order Column -->
   <ng-container matColumnDef="order">
-    <th mat-header-cell *matHeaderCellDef>优先级</th>
+    <th mat-header-cell *matHeaderCellDef>
+      <span>优先级</span>
+      <mat-icon matTooltip="控件在表单中出现的位置，数字越小越靠前" matTooltipPosition="right" >help</mat-icon>
+    </th>
     <td mat-cell *matCellDef="let element">
       <span *ngIf="!element.editing; else editTpl">{{ element.order }}</span>
       <ng-template #editTpl>
@@ -111,7 +115,10 @@
 
   <!-- options Column -->
   <ng-container matColumnDef="options">
-    <th mat-header-cell *matHeaderCellDef>选项</th>
+    <th mat-header-cell *matHeaderCellDef>
+      <span>选项</span>
+      <mat-icon matTooltip="当控件的类型为下拉列表、单选或多选时，至少需要设置一个正确的选项" matTooltipPosition="right" >help</mat-icon>
+    </th>
     <td mat-cell *matCellDef="let element" class="options-cell">
       <ng-container *ngIf="!element.editing; else editTpl">
         <ng-container *ngIf="element.options">
@@ -132,12 +139,12 @@
           <div *ngFor="let item of getOptions(element); index as idx" class="option-edit-container">
             <mat-form-field>
               <mat-label>名称</mat-label>
-              <input matInput [(ngModel)]="item.label" required />
+              <input matInput [(ngModel)]="item.label" min="1" max="20" required />
             </mat-form-field>
 
             <mat-form-field>
               <mat-label>值</mat-label>
-              <input matInput type="number" required [(ngModel)]="item.value" />
+              <input matInput type="number" min="0" max="50" required [(ngModel)]="item.value" />
             </mat-form-field>
 
             <mat-icon (click)="removeOption(idx, element)">close</mat-icon>
@@ -158,8 +165,9 @@
   <ng-container matColumnDef="operation">
     <th mat-header-cell *matHeaderCellDef style="width: 80px;">操作</th>
     <td mat-cell *matCellDef="let element; let i = index">
-      <mat-icon color="primary" (click)="edit(i)">edit</mat-icon>
-      <mat-icon color="warn" (click)="remove(i)">delete</mat-icon>
+      <mat-icon *ngIf="!element.editing" color="primary" (click)="element.editing = true">edit</mat-icon>
+      <mat-icon *ngIf="element.editing" color="primary" (click)="editComplete(element)">check</mat-icon>
+      <mat-icon color="warn" (click)="remove(i)" style="float: right;">delete</mat-icon>
     </td>
   </ng-container>
 

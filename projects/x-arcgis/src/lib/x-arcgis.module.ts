@@ -12,6 +12,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTreeModule } from '@angular/material/tree';
 
 import { DynamicFormFieldComponent } from './dynamic-form-field/dynamic-form-field.component';
@@ -25,6 +26,7 @@ import { DynamicFormFieldService } from './providers/dynamic-form.service';
 import { SidenavComponent } from './sidenav/sidenav.component';
 import { TreeFormComponent } from './tree-form/tree-form.component';
 import { TreeComponent } from './tree/tree.component';
+import { FieldKeyValidatorDirective } from './validators';
 
 @NgModule({
   declarations: [
@@ -36,6 +38,7 @@ import { TreeComponent } from './tree/tree.component';
     TreeFormComponent,
     FormEditComponent,
     ControlTypePipe,
+    FieldKeyValidatorDirective,
   ],
   imports: [
     CommonModule,
@@ -52,6 +55,7 @@ import { TreeComponent } from './tree/tree.component';
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
+    MatTooltipModule,
     MatTreeModule,
     ReactiveFormsModule,
   ],

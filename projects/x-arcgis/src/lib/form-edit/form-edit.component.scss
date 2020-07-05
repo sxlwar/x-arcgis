@@ -22,6 +22,12 @@ table {
   .mat-header-cell {
     white-space: nowrap;
   }
+
+  th mat-icon {
+    font-size: 12px;
+    height: auto;
+    width: auto;
+  }
 }
 
 .footer {

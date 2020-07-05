@@ -1,5 +1,5 @@
-import { Observable } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
+import { merge, Observable, Subject } from 'rxjs';
+import { filter, map, withLatestFrom } from 'rxjs/operators';
 
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
@@ -19,6 +19,8 @@ import { SidenavService } from '../providers/sidenav.service';
 export class TreeFormComponent implements OnInit {
   fields: Observable<XArcgisFormField[]>;
 
+  modified$: Subject<XArcgisFormField[]> = new Subject();
+
   constructor(
     private formService: DynamicFormFieldService,
     public sidenavService: SidenavService,
@@ -26,20 +28,25 @@ export class TreeFormComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.fields = this.sidenavService.activeNodeObs.pipe(
-      filter((node) => !!node && !!node.fields),
-      map((node: XArcgisTreeNode) =>
-        node.fields.map((field) => this.formService.createField(field)).sort(this.formService.sort)
-      )
-    );
+    this.fields = merge(
+      this.sidenavService.activeNodeObs.pipe(
+        filter((node) => !!node && !!node.fields),
+        map((node: XArcgisTreeNode) => node.fields)
+      ),
+      this.modified$.asObservable()
+    ).pipe(map((fields) => fields.map((field) => this.formService.createField(field)).sort(this.formService.sort)));
   }
 
   editFields(node: XArcgisTreeNode): void {
     this.dialog
       .open(FormEditComponent, { data: node, width: '70vw' })
       .afterClosed()
-      .subscribe((data) => {
-        console.log(data);
+      .pipe(withLatestFrom(this.sidenavService.activeNode$))
+      .subscribe(([fields, node]) => {
+        if (!!fields) {
+          node.fields = fields;
+          this.modified$.next(fields);
+        }
       });
   }
 }

@@ -12,3 +12,21 @@ export interface XArcgisTreeNode {
     graphicIds?: number[];
   };
 }
+
+export interface TreeNodeFeature {
+  id: string;
+  geometryType: string;
+  graphicIds: number[];
+  action: 'bind' | 'unbind';
+}
+
+export interface UpdateTreeNodeRequest {
+  id: number;
+  name?: string;
+  children?: XArcgisTreeNode[];
+  fields?: XArcgisFormField[];
+  feature?: TreeNodeFeature;
+  parentId?: number;
+}
+
+export type UpdateTreeNodeResponse = boolean;

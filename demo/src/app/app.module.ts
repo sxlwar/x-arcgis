@@ -49,8 +49,7 @@ const baseLayers: esri.FeatureLayerProperties[] = [
     AppRoutingModule,
     XArcgisModule.forRoot({
       baseLayers,
-      bindUrl: '/api/update',
-      unbindUrl: '/api/update',
+      nodeUpdateUrl: '/api/update',
     }),
     FormsModule,
     ReactiveFormsModule,
