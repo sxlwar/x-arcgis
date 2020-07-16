@@ -20,7 +20,7 @@ export class Map3dService extends Map3dBase implements MapBase {
   loadMap(esriMapObs: Observable<esri.Map>, config: esri.SceneViewProperties): Observable<esri.SceneView> {
     return iif(
       () => this.isModulesLoaded,
-      esriMapObs.pipe(map((esriMap) => new this.SceneView({ map: esriMap }))),
+      esriMapObs.pipe(map((esriMap) => new this.SceneView({ ...config, map: esriMap }))),
       zip(
         esriMapObs,
         this.loadModulesObs<esri.WebSceneConstructor, esri.SceneViewConstructor>([
@@ -38,7 +38,7 @@ export class Map3dService extends Map3dBase implements MapBase {
         (esriMap, modules) => {
           const [_, SceneView] = modules;
 
-          return new SceneView({ ...config, map: esriMap });
+          return new SceneView({ ...config, qualityProfile: 'high' });
         }
       )
     );

@@ -9,7 +9,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import {
     Address, BaseMapConfig, DrawService, GeometryType, SceneType, SearchService, WidgetService,
-    XArcgisTreeNode, XArcgisWidgets
+    XArcgisTreeNode
 } from '@x-arcgis';
 
 import {
@@ -151,23 +151,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   }
 
   addWidget(view: esri.MapView | esri.SceneView) {
-    this.widgetService
-      .getWidgets<esri.HomeConstructor | any>([XArcgisWidgets.HOME, XArcgisWidgets.ViewSwitcher])
-      .subscribe(([Home, ViewSwitcher]) => {
-        const homeWidget = new Home({ view });
-
-        const viewSwitcherWidget = new ViewSwitcher({ view, type: '2d' });
-
-        view.ui.add(homeWidget);
-
-        view.ui.add(viewSwitcherWidget);
-
-        view.ui.move(['zoom', homeWidget, viewSwitcherWidget], 'top-left');
-
-        viewSwitcherWidget.watch('type', (newVal: string) => {
-          this.sceneType = newVal.toLocaleUpperCase() as SceneType;
-        });
-      });
+   // do something after view initialization
   }
 
   handleSearch(option: Address) {

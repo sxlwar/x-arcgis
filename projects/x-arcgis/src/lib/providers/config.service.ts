@@ -5,6 +5,8 @@ import { Injectable, InjectionToken } from '@angular/core';
 import { Base } from '../base/base';
 import { ConfigOption } from '../model';
 
+import esri = __esri;
+
 export const X_ARCGIS_CONFIG = new InjectionToken<ConfigOption[]>('X_ARCGIS_CONFIG');
 
 export abstract class ConfigBase extends Base {}

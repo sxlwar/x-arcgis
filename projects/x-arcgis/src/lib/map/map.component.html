@@ -1,6 +1,6 @@
 <div #mapViewNode id="mapView"></div>
 
-<div *ngIf="!!drawObs" [hidden]="mapUnloaded" class="draw-toolbar">
+<div *ngIf="!!drawObs && sceneType === '2D'" [hidden]="mapUnloaded" class="draw-toolbar">
   <ng-content select="[x-arcgis-draw-toolbar]"></ng-content>
 </div>
 

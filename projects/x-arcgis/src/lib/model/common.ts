@@ -17,4 +17,5 @@ export type IFeatureLayerEditsEvent = esri.FeatureLayerEditsEvent & { target: es
 export interface ConfigOption {
   baseLayers: esri.FeatureLayerProperties[];
   nodeUpdateUrl: string;
+  sceneLayers?: esri.FeatureLayerProperties[];
 }

@@ -1,5 +1,7 @@
 import { from, Observable, of, Subject } from 'rxjs';
-import { distinctUntilChanged, map, mapTo, switchMap, takeUntil, tap } from 'rxjs/operators';
+import {
+    distinctUntilChanged, filter, map, mapTo, switchMap, takeUntil, tap, withLatestFrom
+} from 'rxjs/operators';
 
 import {
     Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild
@@ -7,6 +9,7 @@ import {
 
 import { Address, GeometryType, IFeatureLayerEditsEvent, IHandle, SceneType } from '../model';
 import { BaseMapConfig } from '../model/basemap';
+import { WidgetService } from '../providers';
 import { BasemapService } from '../providers/basemap.service';
 import { ConfigService } from '../providers/config.service';
 import { DrawService } from '../providers/draw.service';
@@ -18,7 +21,6 @@ import { SidenavService } from '../providers/sidenav.service';
 import { StoreService } from '../providers/store.service';
 
 import esri = __esri;
-
 @Component({
   selector: 'x-arcgis-map',
   template: ``,
@@ -133,13 +135,22 @@ export class MapComponent implements OnInit, OnDestroy {
     private drawService: DrawService,
     private map2dService: Map2dService,
     private map3dService: Map3dService,
-    private sidenavService: SidenavService
+    private sidenavService: SidenavService,
+    private widgetService: WidgetService
   ) {}
 
   async ngOnInit() {
     await this.configService.setArcgisConfigs();
 
     this.loadMap();
+
+    this.widgetService.sceneType$
+      .pipe(
+        takeUntil(this.destroy$),
+        distinctUntilChanged(),
+        filter((sceneType) => sceneType !== this.sceneType)
+      )
+      .subscribe((sceneType) => (this.sceneType = sceneType));
   }
 
   ngOnDestroy() {
@@ -173,21 +184,27 @@ export class MapComponent implements OnInit, OnDestroy {
 
     this.map3dService
       .loadMap(esriMapObs, {
-        zoom: this.zoom,
-        center: this.center,
+        // zoom: this.zoom,
+        // center: this.center,
       })
-      .subscribe(
-        (sceneView) => {
-          const WebScene = this.map3dService.WebScene;
-          const webScene = new WebScene({
+      .pipe(
+        switchMap((sceneView) => {
+          const webScene = new this.map3dService.WebScene({
             portalItem: {
-              id: '7f7546e9ae014e43a82f49fba6d1b965',
+              id: '206a6a13162c4d9a95ea6a87abad2437',
             },
           });
 
           sceneView.map = webScene;
           sceneView.container = this.mapViewEl.nativeElement;
 
+          return from(sceneView.when()).pipe(mapTo({ sceneView, webScene }));
+        }),
+        withLatestFrom(esriMapObs)
+      )
+      .subscribe(
+        ([{ sceneView, webScene }, esriMap]) => {
+          this.featureLayerService.addBaseFeatureLayer(esriMap, false);
           this.setMapLoadedState(sceneView);
           this.storeService.store.next({ esriSceneView: sceneView, esriWebScene: webScene });
         },
@@ -227,12 +244,19 @@ export class MapComponent implements OnInit, OnDestroy {
       );
   }
 
-  private setMapLoadedState(view: esri.MapView | esri.SceneView, layers?: esri.FeatureLayer[]) {
+  private setMapLoadedState(view: esri.MapView | esri.SceneView, layers: esri.FeatureLayer[] = []) {
+    if (!!this.layerEditHandlers.length) {
+      this.layerEditHandlers.forEach((handler) => handler.remove());
+      this.layerEditHandlers = [];
+    }
+
     this.mapUnloaded = false;
     this._view = view;
     this.mapLoaded.emit(view);
 
-    if (this.searchObs) {
+    const is2D = this.sceneType === '2D';
+
+    if (this.searchObs && is2D) {
       this.searchService.handleSearch(this.searchObs);
     }
 
@@ -242,10 +266,12 @@ export class MapComponent implements OnInit, OnDestroy {
         this.sidenavService.highlightNode$.next(null);
       })
     );
-    
-    if (this.drawObs) {
+
+    if (this.drawObs && is2D) {
       this.drawService.handleDraw(this.getDrawEvents());
     }
+
+    this.widgetService.addWidgets(view, is2D);
   }
 
   private getDrawEvents(): Observable<GeometryType> {

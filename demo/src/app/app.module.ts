@@ -40,7 +40,28 @@ const baseLayers: esri.FeatureLayerProperties[] = [
     geometryType: 'polygon',
     url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polygon/FeatureServer',
   },
+  {
+    id: `point_layer_2`,
+    geometryType: 'point',
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/pointer2/FeatureServer'
+  },
+  {
+    id: 'polyline_layer_2',
+    geometryType: 'polyline',
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polyline2/FeatureServer'
+  },
+  {
+    id: 'polygon_layer_2',
+    geometryType: 'polygon',
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polygon2/FeatureServer'
+  }
 ];
+const sceneLayers: esri.FeatureLayerProperties[] = [ 
+  { 
+    id: 'demo_scene',
+    url: 'https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/EditableFeatures3D/FeatureServer/1',
+  }
+ ]
 
 @NgModule({
   declarations: [AppComponent, EsriMapComponent, CloseComponent],
@@ -50,6 +71,7 @@ const baseLayers: esri.FeatureLayerProperties[] = [
     XArcgisModule.forRoot({
       baseLayers,
       nodeUpdateUrl: '/api/update',
+      sceneLayers,
     }),
     FormsModule,
     ReactiveFormsModule,
