@@ -1,11 +1,14 @@
 import esri = __esri;
 import { from, iif, Observable, Subject, Subscription } from 'rxjs';
-import { filter, map, reduce } from 'rxjs/operators';
+import { filter, map, reduce, withLatestFrom } from 'rxjs/operators';
 
 import { Injectable, OnDestroy } from '@angular/core';
 
 import { Base } from '../base/base';
 import { IWebComponents, SceneType } from '../model';
+import { BasemapService } from './basemap.service';
+
+export type Constructor = new (...args: any[]) => any;
 
 export abstract class Widget extends Base {}
 
@@ -16,6 +19,7 @@ export enum XArcgisWidgets {
   FEATURE_FORM = 'esri/widgets/FeatureForm',
   LAYER_LIST = 'esri/widgets/LayerList',
   EXPEND = 'esri/widgets/Expand',
+  BASEMAP_GALLERY = 'esri/widgets/BasemapGallery',
 }
 
 export interface IWidget<T = { new (properties: any): any }> {
@@ -39,7 +43,7 @@ export class WidgetService extends Widget implements OnDestroy {
 
   private widgets: IWidget[] = []; // Widget constructors;
 
-  constructor() {
+  constructor(private basemapService: BasemapService) {
     super();
   }
 
@@ -48,8 +52,12 @@ export class WidgetService extends Widget implements OnDestroy {
    */
   getWidgets<T>(paths: string[]): Observable<T[]>;
   getWidgets<T, T2>(paths: string[]): Observable<[T, T2]>;
-  getWidgets<T, T2, T3>(paths: string[]): Observable<(T | T2 | T3)[]>;
-  getWidgets<T, T2, T3, T4>(paths: string[]): Observable<(T | T2 | T3 | T4)[]> {
+  getWidgets<T, T2, T3>(paths: string[]): Observable<[T, T2, T3]>;
+  getWidgets<T, T2, T3, T4>(paths: string[]): Observable<[T, T2, T3, T4]>;
+  getWidgets<T, T2, T3, T4>(paths: string[]): Observable<[T, T2, T3, T4]>;
+  getWidgets<T, T2, T3, T4, T5>(paths: string[]): Observable<[T, T2, T3, T4, T5]>;
+  getWidgets<T, T2, T3, T4, T5, T6>(paths: string[]): Observable<[T, T2, T3, T4, T5, T6]>;
+  getWidgets(paths: string[]): Observable<any[]> {
     const { isAllLoaded, unloaded } = this.isAllWidgetsLoaded(paths);
 
     return iif(
@@ -70,33 +78,50 @@ export class WidgetService extends Widget implements OnDestroy {
   }
 
   addWidgets(view: esri.MapView | esri.SceneView, is2D = true): Subscription {
-    return this.getWidgets<esri.HomeConstructor | any>([
+    return this.getWidgets<
+      esri.HomeConstructor,
+      Constructor,
+      esri.LayerListConstructor,
+      esri.ExpandConstructor,
+      esri.EditorConstructor,
+      esri.BasemapGalleryConstructor
+    >([
       XArcgisWidgets.HOME,
       XArcgisWidgets.VIEW_SWITCHER,
       XArcgisWidgets.LAYER_LIST,
       XArcgisWidgets.EXPEND,
       XArcgisWidgets.EDITOR,
-    ]).subscribe(([Home, ViewSwitcher, LayerList, Expand, Editor]) => {
-      const homeWidget = new Home({ view });
-      const viewSwitcherWidget = new ViewSwitcher({ view, type: '2d' });
-      const expand = new Expand({
-        view,
-        content: is2D ? new LayerList({ view }) : new Editor({ view }),
-        expanded: false,
-      });
+      XArcgisWidgets.BASEMAP_GALLERY,
+    ])
+      .pipe(withLatestFrom(this.basemapService.getAllAvailableBasemap()))
+      .subscribe(([[Home, ViewSwitcher, LayerList, Expand, Editor, BasemapGallery], basemaps]) => {
+        const homeWidget = new Home({ view });
+        const viewSwitcherWidget = new ViewSwitcher({ view, type: '2d' });
+        const layerListOrEditorExpand = new Expand({
+          view,
+          content: is2D ? new LayerList({ view }) : new Editor({ view }),
+          expanded: false,
+        });
+        const basemapGalleryExpand = new Expand({
+          view,
+          content: new BasemapGallery({ view }),
+          expanded: false,
+        });
 
-      view.when(() => {
         view.ui.add(homeWidget);
         view.ui.add(viewSwitcherWidget);
-        view.ui.add(expand);
-        view.ui.move(['zoom', homeWidget, viewSwitcherWidget, expand], 'top-left');
+        view.ui.add(layerListOrEditorExpand);
+        view.ui.add(basemapGalleryExpand);
+        view.ui.move(
+          ['zoom', homeWidget, viewSwitcherWidget, layerListOrEditorExpand, basemapGalleryExpand],
+          'top-left'
+        );
         viewSwitcherWidget.watch('type', (newVal: string) => {
           const sceneType = newVal.toLocaleUpperCase() as SceneType;
 
           this.sceneType$.next(sceneType);
         });
       });
-    });
   }
 
   private isAllWidgetsLoaded(paths: string[]): { isAllLoaded: boolean; unloaded: string[] } {

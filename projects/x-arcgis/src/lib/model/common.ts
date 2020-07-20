@@ -14,8 +14,14 @@ export interface IHandle {
 
 export type IFeatureLayerEditsEvent = esri.FeatureLayerEditsEvent & { target: esri.FeatureLayer };
 
+
+
 export interface ConfigOption {
   baseLayers: esri.FeatureLayerProperties[];
+  // node update api address;
   nodeUpdateUrl: string;
+  // scene layers config
   sceneLayers?: esri.FeatureLayerProperties[];
+  // scene portal url;
+  scenePortal?: string;
 }

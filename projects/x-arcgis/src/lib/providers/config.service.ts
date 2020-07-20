@@ -1,6 +1,6 @@
 import { loadScript } from 'esri-loader';
 
-import { Injectable, InjectionToken } from '@angular/core';
+import { Inject, Injectable, InjectionToken } from '@angular/core';
 
 import { Base } from '../base/base';
 import { ConfigOption } from '../model';
@@ -15,22 +15,24 @@ export abstract class ConfigBase extends Base {}
 export class ConfigService extends ConfigBase {
   isModulesLoaded = false;
 
-  async setArcgisConfigs() {
+  constructor(@Inject(X_ARCGIS_CONFIG) private config: ConfigOption) {
+    super();
+  }
+
+  async setArcgisConfigs(): Promise<boolean> {
     // set dojoConfig at first;
     this.setCustomWidgets();
 
-    // loadCss(`${this.arcgisJsApiUrl}esri/themes/light/main.css`, 'link[rel="icon"]');
-    // loadScript({ url: `${this.arcgisJsApiUrl}init.js` });
     loadScript({ url: 'https://js.arcgis.com/4.15/' });
 
-    // const [esriConfig] = await this.loadModules<[esri.config]>(['esri/config']);
-
-    // esriConfig.portalUrl = `https://${this.host}/arcgis`;
+    const isPortalSet = await this.setPortalUrl();
 
     this.isModulesLoaded = true;
+
+    return isPortalSet;
   }
 
-  setCustomWidgets(): void {
+  setCustomWidgets(): Promise<boolean> {
     const locationPath = location.pathname.replace(/\/[^\/]+$/, '');
 
     (window as any).dojoConfig = {
@@ -42,5 +44,26 @@ export class ConfigService extends ConfigBase {
         },
       ],
     };
+
+    return Promise.resolve(true);
+  }
+
+  private async setPortalUrl(): Promise<boolean> {
+    const { scenePortal } = this.config;
+
+    if (!!scenePortal) {
+      try {
+        const [esriConfig] = await this.loadModules<[esri.config]>(['esri/config']);
+
+        esriConfig.portalUrl = this.config.scenePortal;
+
+        return true;
+      } catch (err) {
+        console.error('Web scene portal url set failed: ',err);
+        return false;
+      }
+    } else {
+      return true;
+    }
   }
 }

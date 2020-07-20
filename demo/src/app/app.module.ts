@@ -72,6 +72,7 @@ const sceneLayers: esri.FeatureLayerProperties[] = [
       baseLayers,
       nodeUpdateUrl: '/api/update',
       sceneLayers,
+      scenePortal: 'http://xinanyun.gisnet.cn/arcgis'
     }),
     FormsModule,
     ReactiveFormsModule,

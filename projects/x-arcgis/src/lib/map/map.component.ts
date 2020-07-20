@@ -77,6 +77,8 @@ export class MapComponent implements OnInit, OnDestroy {
 
   @Input() basemapObs: Observable<BaseMapConfig>;
 
+  @Input() scenePortalItemId: string;
+
   @ViewChild('mapViewNode') private mapViewEl: ElementRef;
 
   @Output() mapLoaded = new EventEmitter<esri.MapView | esri.SceneView>();
@@ -139,10 +141,19 @@ export class MapComponent implements OnInit, OnDestroy {
     private widgetService: WidgetService
   ) {}
 
-  async ngOnInit() {
-    await this.configService.setArcgisConfigs();
-
-    this.loadMap();
+  ngOnInit() {
+    this.configService
+      .setArcgisConfigs()
+      .then((success) => {
+        if (success) {
+          this.loadMap();
+        } else {
+          console.warn('Arcgis configuration failed!');
+        }
+      })
+      .catch((err) => {
+        console.error('Some error occur during arcgis config process', err);
+      });
 
     this.widgetService.sceneType$
       .pipe(
@@ -183,15 +194,12 @@ export class MapComponent implements OnInit, OnDestroy {
     const esriMapObs = this.map2dService.loadMap(basemap);
 
     this.map3dService
-      .loadMap(esriMapObs, {
-        // zoom: this.zoom,
-        // center: this.center,
-      })
+      .loadMap(esriMapObs, {})
       .pipe(
         switchMap((sceneView) => {
           const webScene = new this.map3dService.WebScene({
             portalItem: {
-              id: '206a6a13162c4d9a95ea6a87abad2437',
+              id: this.scenePortalItemId,
             },
           });
 

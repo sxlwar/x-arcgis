@@ -1,4 +1,4 @@
-import { from, Observable, of } from 'rxjs';
+import { from, iif, Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 
 import { Injectable } from '@angular/core';
@@ -19,6 +19,56 @@ export abstract class Basemap extends Base {
 type LoadedBaseMap = BaseMapConfig & {
   options: esri.BasemapProperties;
 };
+
+const getDefaultLayerOptions: (tk: string) => esri.WebTileLayerProperties[] = (tk: string) => [
+  {
+    urlTemplate: `http://{subDomain}.tianditu.com/DataServer?T=vec_w&x={col}&y={row}&l={level}&tk=${tk}&timeStamp=${new Date().getTime()}`,
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    title: '天地图矢量',
+    // copyright: "天地图"
+  },
+  {
+    urlTemplate: `http://{subDomain}.tianditu.com/DataServer?T=cva_w&x={col}&y={row}&l={level}&tk=${tk}&timeStamp=${new Date().getTime()}`,
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    title: '天地图注记',
+    // copyright: "天地图"
+  },
+  {
+    urlTemplate: `http://{subDomain}.google.com/kh/v=863&hl=en&x={col}&y={row}&z={level}&s=Galileo`,
+    subDomains: ['khm0', 'khm1', 'khm2', 'khm3'],
+    title: '谷歌地图影像',
+    // copyright: "天地图"
+  },
+  {
+    urlTemplate: `http://{subDomain}.tianditu.com/DataServer?T=cia_w&x={col}&y={row}&l={level}&tk=${tk}&timeStamp=${new Date().getTime()}`,
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    title: '天地图注记',
+    // copyright: "天地图"
+  },
+  {
+    urlTemplate: `http://{subDomain}.tianditu.com/DataServer?T=vec_w&x={col}&y={row}&l={level}&tk=${tk}&timeStamp=${new Date().getTime()}`,
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    title: '天地图矢量',
+  },
+  {
+    urlTemplate: `http://{subDomain}.tianditu.com/DataServer?T=cva_w&x={col}&y={row}&l={level}&tk=${tk}&timeStamp=${new Date().getTime()}`,
+
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    title: '天地图注记',
+  },
+  {
+    urlTemplate: `http://{subDomain}.tianditu.com/DataServer?T=img_w&x={col}&y={row}&l={level}&tk=${tk}&timeStamp=${new Date().getTime()}`,
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    title: '天地图影像',
+    // copyright: "天地图"
+  },
+  {
+    urlTemplate: `http://{subDomain}.tianditu.com/DataServer?T=cia_w&x={col}&y={row}&l={level}&tk=${tk}&timeStamp=${new Date().getTime()}`,
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    title: '天地图注记',
+    // copyright: "天地图"
+  },
+];
 
 /**
  * Default basemap service;
@@ -88,6 +138,14 @@ export class BasemapService extends Basemap {
     };
 
     return this.isModulesLoaded ? basemap() : this.loadBaseModules().pipe(switchMap(() => basemap()));
+  }
+
+  getAllAvailableBasemap(): Observable<esri.BasemapProperties[]> {
+    const { WebTileLayer, tk } = this;
+    const layerOptions = getDefaultLayerOptions(tk);
+    const getAll = () => of(layerOptions.map((option) => new WebTileLayer(option)));
+
+    return iif(() => this.isModulesLoaded, getAll(), this.loadBaseModules().pipe(switchMap(() => getAll())));
   }
 
   private loadBaseModules() {
@@ -201,7 +259,7 @@ export class BasemapService extends Basemap {
   }
 
   private getTiandituBasemap(type: BasemapType): Observable<esri.BasemapProperties> {
-    const { WebTileLayer, Basemap, tk } = this;
+    const { WebTileLayer, tk } = this;
     let options: esri.BasemapProperties = null;
 
     switch (type) {
