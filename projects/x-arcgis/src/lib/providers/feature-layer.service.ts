@@ -12,7 +12,7 @@ import esri = __esri;
 export abstract class FeatureLayer extends Base {}
 
 const sceneLayerConfig: esri.FeatureLayerProperties = {
-  title: 'Recreation',
+  title: '自定义',
   elevationInfo: {
     mode: 'absolute-height',
   },
@@ -37,7 +37,7 @@ const sceneLayerConfig: esri.FeatureLayerProperties = {
     uniqueValueInfos: [
       {
         value: '1',
-        label: 'Slide',
+        label: '滑梯',
         symbol: {
           type: 'point-3d', // autocasts as new PointSymbol3D()
           symbolLayers: [
@@ -56,7 +56,7 @@ const sceneLayerConfig: esri.FeatureLayerProperties = {
       },
       {
         value: '2',
-        label: 'Swing',
+        label: '秋千',
         symbol: {
           type: 'point-3d', // autocasts as new PointSymbol3D()
           symbolLayers: [
@@ -71,6 +71,44 @@ const sceneLayerConfig: esri.FeatureLayerProperties = {
             styleName: 'EsriRecreationStyle',
             name: 'Swing',
           },
+        },
+      },
+      {
+        value: '3',
+        label: '消防栓',
+        symbol: {
+          type: 'point-3d',
+          symbolLayers: [
+            {
+              type: 'object',
+              resource: {
+                href: 'https://static.arcgis.com/arcgis/styleItems/RealisticStreetScene/gltf/resource/Fire_Hydrant.glb',
+              },
+            },
+          ],
+          styleOrigin: {
+            styleName: 'EsriRealisticStreetSceneStyle',
+            name: 'Fire_Hydrant',
+          },
+        },
+      },
+      {
+        value: '4',
+        label: '奥迪A6',
+        symbol: {
+          type: 'point-3d',
+          symbolLayers: [
+            {
+              type: 'object',
+              resource: {
+                href: 'https://static.arcgis.com/arcgis/styleItems/RealisticTransportation/web/resource/Audi_A6.json',
+              },
+            },
+          ],
+          styleOrigin: {
+            styleName: 'EsriRealisticTransportationStyle',
+            name: 'Audi_A6'
+          }
         },
       },
     ],
@@ -93,9 +131,11 @@ export class FeatureLayerService extends FeatureLayer {
     this.sceneLayers = this.config.sceneLayers;
   }
 
-  addBaseFeatureLayer(map: esri.Map, is2D = true): Observable<esri.FeatureLayer[]> {
-    const addLayers = () =>
-      this.getLayers(is2D).pipe(tap((layers) => layers.forEach((layer) => map.add(layer))));
+  /**
+   * add feature layers to the map in 2d or the web scene in 3d
+   */
+  addBaseFeatureLayer(map: esri.Map | esri.WebScene, is2D = true): Observable<esri.FeatureLayer[]> {
+    const addLayers = () => this.getLayers(is2D).pipe(tap((layers) => layers.forEach((layer) => map.add(layer))));
 
     return iif(
       () => this.isModulesLoaded,

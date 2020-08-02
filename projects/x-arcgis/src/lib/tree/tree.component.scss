@@ -1,4 +1,19 @@
+:host {
+  display: block;
+  overflow: scroll;
+  height: 100%;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  
+  &::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+}
+
 .x-arcgis-tree-title {
+  position: absolute;
+  z-index: 1000;
   font-size: 18px;
 }
 
@@ -8,6 +23,9 @@
 
 .x-arcgis-tree {
   background-color: transparent;
+  position: relative;
+  top: 40px;
+
   ul,
   li {
     margin-top: 0;

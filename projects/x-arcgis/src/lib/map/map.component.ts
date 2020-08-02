@@ -1,6 +1,6 @@
 import { from, Observable, of, Subject } from 'rxjs';
 import {
-    distinctUntilChanged, filter, map, mapTo, switchMap, takeUntil, tap, withLatestFrom
+    distinctUntilChanged, filter, map, mapTo, switchMap, takeUntil, tap
 } from 'rxjs/operators';
 
 import {
@@ -208,12 +208,15 @@ export class MapComponent implements OnInit, OnDestroy {
 
           return from(sceneView.when()).pipe(mapTo({ sceneView, webScene }));
         }),
-        withLatestFrom(esriMapObs)
+        switchMap(({ sceneView, webScene }) =>
+          this.featureLayerService
+            .addBaseFeatureLayer(webScene, false)
+            .pipe(map((featureLayers) => ({ sceneView, webScene, featureLayers })))
+        )
       )
       .subscribe(
-        ([{ sceneView, webScene }, esriMap]) => {
-          this.featureLayerService.addBaseFeatureLayer(esriMap, false);
-          this.setMapLoadedState(sceneView);
+        ({ sceneView, webScene, featureLayers }) => {
+          this.setMapLoadedState(sceneView, featureLayers);
           this.storeService.store.next({ esriSceneView: sceneView, esriWebScene: webScene });
         },
         (error) => console.error(error),

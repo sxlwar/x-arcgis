@@ -1,5 +1,3 @@
-@import url('https://js.arcgis.com/4.12/esri/css/main.css');
-
 $left-space: 20px;
 $right-space: 20px;
 $top-space: 15px;
@@ -24,7 +22,7 @@ $bottom-space: 15px;
 .search-box {
   position: absolute;
   top: $top-space;
-  right: $right-space;
+  left: $left-space;
 }
 
 :host::ng-deep {

@@ -14,6 +14,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTreeModule } from '@angular/material/tree';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { DynamicFormFieldComponent } from './dynamic-form-field/dynamic-form-field.component';
 import { DynamicFormComponent } from './dynamic-form/dynamic-form.component';
@@ -23,6 +24,7 @@ import { ConfigOption } from './model';
 import { ControlTypePipe } from './pipes/control-type.pipe';
 import { X_ARCGIS_CONFIG } from './providers';
 import { DynamicFormFieldService } from './providers/dynamic-form.service';
+import { SideNavSwitcherComponent } from './side-nav-switcher/side-nav-switcher.component';
 import { SidenavComponent } from './sidenav/sidenav.component';
 import { TreeFormComponent } from './tree-form/tree-form.component';
 import { TreeComponent } from './tree/tree.component';
@@ -39,8 +41,10 @@ import { FieldKeyValidatorDirective } from './validators';
     FormEditComponent,
     ControlTypePipe,
     FieldKeyValidatorDirective,
+    SideNavSwitcherComponent,
   ],
   imports: [
+    BrowserAnimationsModule,
     CommonModule,
     FormsModule,
     HttpClientJsonpModule,

@@ -1,7 +1,15 @@
-<div [hidden]="activeNode" class="x-arcgis-sidenav">
+<div
+  [hidden]="activeNode || !isSideNavDisplay"
+  class="x-arcgis-sidenav sidenav"
+>
   <x-arcgis-tree [source]="dataSource" [sideNavTitle]="sideNavTitle"></x-arcgis-tree>
 </div>
 
 <div *ngIf="activeNode" class="x-arcgis-sidenav">
   <x-arcgis-tree-form></x-arcgis-tree-form>
 </div>
+
+<x-arcgis-side-nav-switcher
+  (click)="isSideNavDisplay = !isSideNavDisplay"
+  [isSideNavDisplay]="isSideNavDisplay"
+></x-arcgis-side-nav-switcher>

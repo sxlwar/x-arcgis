@@ -57,11 +57,16 @@ const baseLayers: esri.FeatureLayerProperties[] = [
   }
 ];
 const sceneLayers: esri.FeatureLayerProperties[] = [ 
-  { 
-    id: 'demo_scene',
-    url: 'https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/EditableFeatures3D/FeatureServer/1',
+  // { 
+  //   id: 'custom_scene_layer',
+  //   url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/building/FeatureServer'
+  // },
+  // TODO: 这一层后台怎么创建出来？
+  {
+    id: 'official_editable_scene_layer',
+    url: 'https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/EditableFeatures3D/FeatureServer/1'
   }
- ]
+ ];
 
 @NgModule({
   declarations: [AppComponent, EsriMapComponent, CloseComponent],
@@ -72,7 +77,8 @@ const sceneLayers: esri.FeatureLayerProperties[] = [
       baseLayers,
       nodeUpdateUrl: '/api/update',
       sceneLayers,
-      scenePortal: 'http://xinanyun.gisnet.cn/arcgis'
+      scenePortal: 'http://map.xinanyun.cn/arcgis',
+      styleUrl: './assets/themes/light-blue/main.css',
     }),
     FormsModule,
     ReactiveFormsModule,

@@ -117,13 +117,15 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   treeSource: Observable<XArcgisTreeNode[]>;
 
+  bounce: any;
+
   constructor(
     private searchService: SearchService,
     private drawService: DrawService,
     private widgetService: WidgetService,
     private modalService: NzModalService,
     private webComponentService: WebComponentService,
-    private apiService: ApiService,
+    private apiService: ApiService
   ) {}
 
   ngOnInit() {
@@ -151,7 +153,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   }
 
   addWidget(view: esri.MapView | esri.SceneView) {
-   // do something after view initialization
+    // do something after view initialization
   }
 
   handleSearch(option: Address) {

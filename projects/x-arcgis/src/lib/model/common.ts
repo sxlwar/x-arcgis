@@ -24,4 +24,6 @@ export interface ConfigOption {
   sceneLayers?: esri.FeatureLayerProperties[];
   // scene portal url;
   scenePortal?: string;
+  // style file url;
+  styleUrl?: string;
 }

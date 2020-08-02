@@ -114,7 +114,7 @@ export class WidgetService extends Widget implements OnDestroy {
         view.ui.add(basemapGalleryExpand);
         view.ui.move(
           ['zoom', homeWidget, viewSwitcherWidget, layerListOrEditorExpand, basemapGalleryExpand],
-          'top-left'
+          'top-right'
         );
         viewSwitcherWidget.watch('type', (newVal: string) => {
           const sceneType = newVal.toLocaleUpperCase() as SceneType;

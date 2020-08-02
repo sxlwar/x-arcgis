@@ -1,4 +1,4 @@
-import { loadScript } from 'esri-loader';
+import { loadCss, loadScript } from 'esri-loader';
 
 import { Inject, Injectable, InjectionToken } from '@angular/core';
 
@@ -24,6 +24,8 @@ export class ConfigService extends ConfigBase {
     this.setCustomWidgets();
 
     loadScript({ url: 'https://js.arcgis.com/4.15/' });
+
+    this.loadCss();
 
     const isPortalSet = await this.setPortalUrl();
 
@@ -59,11 +61,19 @@ export class ConfigService extends ConfigBase {
 
         return true;
       } catch (err) {
-        console.error('Web scene portal url set failed: ',err);
+        console.error('Web scene portal url set failed: ', err);
         return false;
       }
     } else {
       return true;
+    }
+  }
+
+  private loadCss() {
+    loadCss('https://js.arcgis.com/4.12/esri/css/main.css', 'style');
+
+    if (this.config.styleUrl) {
+      loadCss(this.config.styleUrl);
     }
   }
 }

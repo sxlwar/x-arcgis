@@ -1,0 +1,29 @@
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba($color: #000000, $alpha: 0.3);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  height: 15%;
+  width: 30px;
+  z-index: 999;
+  cursor: pointer;
+  clip-path: polygon(0% 0%, 100% 15%, 100% 85%, 0% 100%);
+  &:hover {
+    background-color: rgba($color: #000000, $alpha: 0.5);
+  }
+  transition: all 0.5s;
+}
+
+span {
+  color: #ccc;
+  writing-mode: vertical-lr;
+  font-size: 12px;
+  
+  &:hover {
+    color: #fff;
+  }
+}

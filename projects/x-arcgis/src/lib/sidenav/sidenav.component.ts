@@ -1,6 +1,8 @@
 import { takeWhile } from 'rxjs/operators';
 
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import {
+    Component, EventEmitter, HostBinding, Input, OnDestroy, OnInit, Output
+} from '@angular/core';
 
 import { XArcgisTreeNode } from '../model';
 import { DynamicFormFieldService } from '../providers/dynamic-form.service';
@@ -22,6 +24,8 @@ export class SidenavComponent implements OnInit, OnDestroy {
 
   isAlive = true;
 
+  isSideNavDisplay = true;
+
   constructor(public sidenavService: SidenavService, private formService: DynamicFormFieldService) {}
 
   ngOnInit(): void {
@@ -34,5 +38,9 @@ export class SidenavComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.isAlive = false;
+  }
+
+  @HostBinding('style.width') get toggleDisplay() {
+    return this.isSideNavDisplay ? null : 0;
   }
 }
