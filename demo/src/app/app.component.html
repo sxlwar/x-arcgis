@@ -1,3 +1,51 @@
+<nav>
+  <div class="header">
+    <div class="header-left">
+      <img src="./assets/images/logo.png" class="logo" />
+
+      <div class="name">鑫安云数据可视化平台</div>
+    </div>
+
+    <div class="header-right">
+      <x-arcgis-theme-picker class="theme-picker"></x-arcgis-theme-picker>
+
+      <button mat-raised-button *ngIf="!apiService.isAuthSuccess" color="primary" (click)="openLoginDialog()">
+        登录
+      </button>
+      <button
+        mat-raised-button
+        *ngIf="apiService.isAuthSuccess"
+        color="warn"
+        (click)="apiService.isAuthSuccess = false"
+      >
+        退出登录
+      </button>
+    </div>
+  </div>
+</nav>
+
 <div class="container">
   <router-outlet></router-outlet>
 </div>
+
+<div *ngIf="!apiService.isAuthSuccess" class="mask"></div>
+
+<ng-template #loginTpl>
+  <h2 class="login-title">登录</h2>
+  <form [formGroup]="form" class="login-form">
+    <mat-form-field>
+      <mat-label>帐号</mat-label>
+      <input matInput formControlName="account" />
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>密码</mat-label>
+      <input matInput type="password" formControlName="password" />
+    </mat-form-field>
+
+    <div class="btn-group">
+      <button mat-raised-button (click)="dialogRef.close()">取消</button>
+      <button mat-raised-button color="primary" (click)="login()">登录</button>
+    </div>
+  </form>
+</ng-template>

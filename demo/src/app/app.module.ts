@@ -12,6 +12,13 @@ import { HttpClientModule } from '@angular/common/http';
 import zh from '@angular/common/locales/zh';
 import { NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { XArcgisModule } from '@x-arcgis';
@@ -21,7 +28,6 @@ import { AppComponent } from './app.component';
 import { CloseComponent, EsriMapComponent } from './esri-map/esri-map.component';
 
 import esri = __esri;
-
 registerLocaleData(zh);
 
 const baseLayers: esri.FeatureLayerProperties[] = [
@@ -90,6 +96,13 @@ const sceneLayers: esri.FeatureLayerProperties[] = [
     NzAutocompleteModule,
     NzButtonModule,
     NzModalModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSnackBarModule,
+    MatIconModule,
+    MatMenuModule,
   ],
   providers: [{ provide: NZ_I18N, useValue: zh_CN }],
   bootstrap: [AppComponent],

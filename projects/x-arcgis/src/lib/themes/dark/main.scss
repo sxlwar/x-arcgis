@@ -1,9 +1,6 @@
 /*
   Theme: Dark
 */
-// Hex values from
-// @import "../base/colors/scss/variables_dark.scss";
-// ↳ https://github.com/Esri/calcite-colors.git
 
 $font-color: #d1d1d1; // $Calcite_Gray_700 (dark)
 $background-color: #242424; // $Calcite_Gray_050 (dark)
@@ -20,5 +17,8 @@ $background-color--active: #000000;
 
 // Error
 $font-color--error: #eb7953;
+
+// sidenav font color
+$side-nav-font-color: #fff;
 
 @import "../base/core";

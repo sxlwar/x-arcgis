@@ -6,8 +6,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatGridListModule } from '@angular/material/grid-list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -26,6 +28,7 @@ import { X_ARCGIS_CONFIG } from './providers';
 import { DynamicFormFieldService } from './providers/dynamic-form.service';
 import { SideNavSwitcherComponent } from './side-nav-switcher/side-nav-switcher.component';
 import { SidenavComponent } from './sidenav/sidenav.component';
+import { ThemePickerComponent } from './theme-picker/theme-picker.component';
 import { TreeFormComponent } from './tree-form/tree-form.component';
 import { TreeComponent } from './tree/tree.component';
 import { FieldKeyValidatorDirective } from './validators';
@@ -42,6 +45,7 @@ import { FieldKeyValidatorDirective } from './validators';
     ControlTypePipe,
     FieldKeyValidatorDirective,
     SideNavSwitcherComponent,
+    ThemePickerComponent
   ],
   imports: [
     BrowserAnimationsModule,
@@ -53,8 +57,10 @@ import { FieldKeyValidatorDirective } from './validators';
     MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
+    MatGridListModule,
     MatIconModule,
     MatInputModule,
+    MatMenuModule,
     MatRadioModule,
     MatSelectModule,
     MatSnackBarModule,
@@ -63,7 +69,7 @@ import { FieldKeyValidatorDirective } from './validators';
     MatTreeModule,
     ReactiveFormsModule,
   ],
-  exports: [MapComponent, SidenavComponent],
+  exports: [MapComponent, SidenavComponent, ThemePickerComponent],
   providers: [DynamicFormFieldService],
 })
 export class XArcgisModule {

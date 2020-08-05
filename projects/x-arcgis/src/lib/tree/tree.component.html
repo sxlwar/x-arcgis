@@ -1,4 +1,4 @@
-<h4 class="x-arcgis-tree-title">{{ sideNavTitle }}</h4>
+<h4 class="x-arcgis-tree-title" [ngClass]="{ 'dark-mode': isDarkMode | async }">{{ sideNavTitle }}</h4>
 
 <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="x-arcgis-tree">
   <!-- This is the tree node template for leaf nodes -->
@@ -6,7 +6,7 @@
     <li
       (click)="onNodeClick(node); $event.stopPropagation()"
       class="mat-tree-node"
-      [ngClass]="{ 'highlight-node': node.id === highlightNodeId }"
+      [ngClass]="{ 'highlight-node': node.id === highlightNodeId, 'dark-mode': isDarkMode | async }"
     >
       <!-- use a disabled button to provide padding for tree leaf -->
       <button mat-icon-button disabled style="width: 2.5em;"></button>
@@ -19,7 +19,10 @@
   <!-- This is the tree node template for expandable nodes -->
   <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
     <li (click)="onNodeClick(node); $event.stopPropagation()">
-      <div class="mat-tree-node" [ngClass]="{ 'highlight-node': node.id === highlightNodeId }">
+      <div
+        class="mat-tree-node"
+        [ngClass]="{ 'highlight-node': node.id === highlightNodeId, 'dark-mode': isDarkMode | async }"
+      >
         <button mat-icon-button matTreeNodeToggle [attr.aria-label]="'toggle ' + node.name">
           <mat-icon class="mat-icon-rtl-mirror">
             {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}

@@ -1,0 +1,12 @@
+.circle {
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  mat-icon {
+    color: #fff;
+    margin-right: 0 !important;
+  }
+}

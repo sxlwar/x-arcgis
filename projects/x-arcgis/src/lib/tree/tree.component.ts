@@ -7,6 +7,7 @@ import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 
 import { XArcgisTreeNode } from '../model';
 import { NodeOperation, SidenavService } from '../providers/sidenav.service';
+import { StyleManagerService } from '../providers/style-manager.service';
 import { deepSearchRecordFactory, searchCascadeNodes } from '../util';
 
 @Component({
@@ -43,9 +44,13 @@ export class TreeComponent implements OnInit, OnDestroy {
 
   subscription: Subscription;
 
-  constructor(public sidenavService: SidenavService) {}
+  isDarkMode: Observable<boolean>;
+
+  constructor(public sidenavService: SidenavService, private styleManagerService:StyleManagerService) {}
 
   ngOnInit(): void {
+    this.isDarkMode = this.styleManagerService.isDarkMode.asObservable();
+
     this.isBindIconDisplay = this.sidenavService.showBindButton$.asObservable();
 
     const bind$$ = this.sidenavService.bindGraphicToNode().subscribe((responses) => {
