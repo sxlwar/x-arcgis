@@ -15,46 +15,34 @@
   (drawingType)="onDraw($event)"
   class="x-arcgis-map"
 >
-  <nz-radio-group [formControl]="draw" [nzSize]="'default'" [nzButtonStyle]="'solid'" x-arcgis-draw-toolbar>
-    <label nz-radio-button nzValue="point">
-      <i nz-icon nzType="dot-chart" nzTheme="outline"></i>
-      <span>点</span>
-    </label>
-    <label nz-radio-button nzValue="polyline">
-      <i nz-icon nzType="fund" nzTheme="outline"></i>
-      <span>线</span>
-    </label>
-    <label nz-radio-button nzValue="polygon">
-      <i nz-icon nzType="area-chart" nzTheme="outline"></i>
-      <span>区域</span>
-    </label>
-  </nz-radio-group>
+  <!--? ng-zorro style draw toolbar-->
+  <!-- <x-arcgis-ng-zorro-draw-toolbar [control]="draw"  x-arcgis-draw-toolbar></x-arcgis-ng-zorro-draw-toolbar> -->
 
-  <ng-container x-arcgis-searchbox>
-    <nz-input-group nzSearch nzSize="default" [nzAddOnAfter]="suffixIconButton">
-      <input
-        placeholder="请输入关键词搜索..."
-        nz-input
-        [formControl]="search"
-        (keyup.enter)="handleSearch(null)"
-        [nzAutocomplete]="auto"
-      />
-    </nz-input-group>
-    <ng-template #suffixIconButton>
-      <button (click)="handleSearch(null)" nz-button nzType="primary" nzSize="default" nzSearch>
-        <i nz-icon nzType="search" nzTheme="outline"></i>
-      </button>
-    </ng-template>
-    <nz-autocomplete #auto>
-      <nz-auto-option
-        class="global-search-item"
-        *ngFor="let option of listOfOption | async"
-        (click)="handleSearch(option)"
-        [nzLabel]="option.name"
-        [nzValue]="option.name"
-      >
-        {{ option.name }}
-      </nz-auto-option>
-    </nz-autocomplete>
-  </ng-container>
+  <!--? angular material style draw toolbar-->
+  <x-arcgis-mat-draw-toolbar [control]="draw" x-arcgis-draw-toolbar></x-arcgis-mat-draw-toolbar>
+
+  <!--? ng-zorro style searchbox-->
+  <!-- <x-arcgis-ng-zorro-searchbox
+    [control]="search"
+    (onSearch)="handleSearch($event)"
+    [options]="listOfOption"
+    x-arcgis-searchbox
+  ></x-arcgis-ng-zorro-searchbox> -->
+
+  <!--? angular-material style searchbox-->
+  <x-arcgis-mat-searchbox
+    [control]="search"
+    (onSearch)="handleSearch($event)"
+    [options]="listOfOption"
+    x-arcgis-searchbox
+  ></x-arcgis-mat-searchbox>
 </x-arcgis-map>
+
+<ng-template #dialogTpl>
+  <div>确定要关闭编辑器?</div>
+
+  <div class="dialog-btn-group">
+    <button mat-raised-button (click)="dialogRef.close(false)">取消</button>
+    <button mat-raised-button color="primary" (click)="dialogRef.close(true)">确定</button>
+  </div>
+</ng-template>

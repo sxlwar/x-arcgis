@@ -1,20 +1,16 @@
+import { dialog } from 'esri/identity/IdentityManager';
 import { NzModalService } from 'ng-zorro-antd/modal';
 import { iif, Observable, of, Subject } from 'rxjs';
 import { map, startWith, take } from 'rxjs/operators';
 
-// import {
-//     Address, BaseMapConfig, DrawService, SearchService, WidgetService, XArcgisWidgets
-// } from 'x-arcgis';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import {
-    Address, BaseMapConfig, DrawService, GeometryType, SceneType, SearchService, WidgetService,
-    XArcgisTreeNode
+    Address, BaseMapConfig, DrawService, GeometryType, SceneType, SearchService,
+    WebComponentService, XArcgisTreeNode
 } from '@x-arcgis';
 
-import {
-    WebComponentService
-} from '../../../../projects/x-arcgis/src/lib/providers/web-component.service';
 import { ApiService } from '../providers/api.service';
 
 import esri = __esri;
@@ -117,15 +113,17 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   treeSource: Observable<XArcgisTreeNode[]>;
 
-  bounce: any;
+  @ViewChild('dialogTpl') dialogTpl: TemplateRef<any>;
+
+  dialogRef: MatDialogRef<TemplateRef<any>>;
 
   constructor(
     private searchService: SearchService,
     private drawService: DrawService,
-    private widgetService: WidgetService,
     private modalService: NzModalService,
     private webComponentService: WebComponentService,
-    private apiService: ApiService
+    private apiService: ApiService,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit() {
@@ -136,14 +134,23 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.listOfOption = this.searchService.getFuzzyMatchList(this.search.valueChanges as Observable<string>);
 
     this.webComponentService.setCloseNode(CloseComponent, (view, editor) => (event) => {
-      this.modalService.confirm({
-        nzTitle: '<i>信息提示?</i>',
-        nzContent: '<b>确定要退出编辑吗？</b>',
-        nzOnOk: () => {
+      this.dialogRef = this.dialog.open(this.dialogTpl);
+      this.dialogRef.afterClosed().subscribe((isOkClicked) => {
+        if (isOkClicked) {
           this.drawService.destroyEditor(view, editor);
           this.draw.setValue(null);
-        },
+        }
       });
+
+      //? can use ng-zorro modal as well; 
+      // this.modalService.confirm({
+      //   nzTitle: '<i>信息提示?</i>',
+      //   nzContent: '<b>确定要退出编辑吗？</b>',
+      //   nzOnOk: () => {
+      //     this.drawService.destroyEditor(view, editor);
+      //     this.draw.setValue(null);
+      //   },
+      // });
     });
   }
 

@@ -1,3 +1,4 @@
+import { animate, style, transition, trigger } from '@angular/animations';
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup } from '@angular/forms';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -10,6 +11,12 @@ import { ApiService } from './providers/api.service';
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
+  animations: [
+    trigger('mask', [
+      transition(':enter', [style({ opacity: 0 }), animate('1s', style({ opacity: 1 }))]),
+      transition(':leave', [animate('1s', style({ opacity: 0 }))]),
+    ]),
+  ],
 })
 export class AppComponent implements OnInit {
   title = '鑫安云数据可视化平台';
@@ -27,14 +34,14 @@ export class AppComponent implements OnInit {
     private formBuilder: FormBuilder,
     private snackbar: MatSnackBar,
     private titleService: Title,
-    public apiService: ApiService,
+    public apiService: ApiService
   ) {}
 
   ngOnInit() {
     this.titleService.setTitle(this.title);
     this.initForm();
   }
-  
+
   initForm() {
     this.form = this.formBuilder.group({
       account: '',

@@ -9,29 +9,34 @@
     <div class="header-right">
       <x-arcgis-theme-picker class="theme-picker"></x-arcgis-theme-picker>
 
-      <button mat-raised-button *ngIf="!apiService.isAuthSuccess" color="primary" (click)="openLoginDialog()">
-        登录
+      <button mat-icon-button *ngIf="!apiService.isAuthSuccess" color="primary" (click)="openLoginDialog()" matTooltip="登录">
+        <mat-icon>login</mat-icon>
       </button>
+
       <button
-        mat-raised-button
+        mat-icon-button
         *ngIf="apiService.isAuthSuccess"
         color="warn"
         (click)="apiService.isAuthSuccess = false"
+        matToolTip="退出登录"
       >
-        退出登录
+        <mat-icon>exit_to_app</mat-icon>
       </button>
     </div>
   </div>
 </nav>
 
-<div class="container">
+<div class="container" [ngClass]="{'blur-content': !apiService.isAuthSuccess}">
   <router-outlet></router-outlet>
 </div>
 
-<div *ngIf="!apiService.isAuthSuccess" class="mask"></div>
+<div *ngIf="!apiService.isAuthSuccess" class="mask" @mask>
+  请登录后使用此应用，测试帐号：test，测试密码：1234
+</div>
 
 <ng-template #loginTpl>
   <h2 class="login-title">登录</h2>
+  
   <form [formGroup]="form" class="login-form">
     <mat-form-field>
       <mat-label>帐号</mat-label>

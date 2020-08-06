@@ -10,17 +10,23 @@ export class ApiService {
 
   isAuthSuccess = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    this.isAuthSuccess = localStorage.getItem('xArcgisAuthAccount') === 'test';
+  }
 
   getTreeNodes(): Observable<XArcgisTreeNode[]> {
     return this.http.get<XArcgisTreeNode[]>(this.url);
   }
 
-  auth(params: { account: string; password: string}): boolean {
+  auth(params: { account: string; password: string }): boolean {
     const { account, password } = params;
-    
-    this.isAuthSuccess =  account === 'test' && password === '1234';
 
-    return this.isAuthSuccess
+    this.isAuthSuccess = account === 'test' && password === '1234';
+
+    if (this.isAuthSuccess) {
+      localStorage.setItem('xArcgisAuthAccount', account);
+    }
+
+    return this.isAuthSuccess;
   }
 }

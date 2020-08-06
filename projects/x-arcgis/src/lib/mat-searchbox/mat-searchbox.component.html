@@ -1,0 +1,21 @@
+<mat-form-field>
+  <mat-label>请输入关键词搜索...</mat-label>
+  <input
+    type="text"
+    aria-label="搜索"
+    matInput
+    [formControl]="search"
+    [matAutocomplete]="auto"
+    (keyup.enter)="onSearch.next(null)"
+  />
+
+  <button mat-button matSuffix mat-icon-button aria-label="search" (click)="onSearch.next(null)">
+    <mat-icon>search</mat-icon>
+  </button>
+
+  <mat-autocomplete #auto="matAutocomplete">
+    <mat-option *ngFor="let option of listOfOption | async" [value]="option.name" (click)="onSearch.next(option)">
+      {{ option.name }}
+    </mat-option>
+  </mat-autocomplete>
+</mat-form-field>

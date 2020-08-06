@@ -8,3 +8,5 @@ export * from './map3d.service';
 export * from './search.service';
 export * from './store.service';
 export * from './widget.service';
+export * from './web-component.service';
+export * from './style-manager.service';

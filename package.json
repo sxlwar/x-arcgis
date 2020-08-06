@@ -7,7 +7,6 @@
     "start:demo": "ng serve -o",
     "start:widget": "gulp",
     "start:scss": "gulp scss",
-    "debug:scss": "npm run start:demo && npm run start:scss",
     "debug:widget": "npm run start:demo && npm run start:widget",
     "build": "ng build",
     "test": "ng test",

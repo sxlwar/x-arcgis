@@ -1,10 +1,6 @@
-import { NzAutocompleteModule } from 'ng-zorro-antd/auto-complete';
-import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NZ_I18N, zh_CN } from 'ng-zorro-antd/i18n';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzModalModule } from 'ng-zorro-antd/modal';
-import { NzRadioModule } from 'ng-zorro-antd/radio';
 
 // import { XArcgisModule } from 'x-arcgis';
 import { registerLocaleData } from '@angular/common';
@@ -17,8 +13,8 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { XArcgisModule } from '@x-arcgis';
@@ -49,30 +45,30 @@ const baseLayers: esri.FeatureLayerProperties[] = [
   {
     id: `point_layer_2`,
     geometryType: 'point',
-    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/pointer2/FeatureServer'
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/pointer2/FeatureServer',
   },
   {
     id: 'polyline_layer_2',
     geometryType: 'polyline',
-    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polyline2/FeatureServer'
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polyline2/FeatureServer',
   },
   {
     id: 'polygon_layer_2',
     geometryType: 'polygon',
-    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polygon2/FeatureServer'
-  }
+    url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/polygon2/FeatureServer',
+  },
 ];
-const sceneLayers: esri.FeatureLayerProperties[] = [ 
-  // { 
+const sceneLayers: esri.FeatureLayerProperties[] = [
+  // {
   //   id: 'custom_scene_layer',
   //   url: 'https://services.arcgis.com/0VkaDfZ5oLYahA9k/arcgis/rest/services/building/FeatureServer'
   // },
   // TODO: 这一层后台怎么创建出来？
   {
     id: 'official_editable_scene_layer',
-    url: 'https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/EditableFeatures3D/FeatureServer/1'
-  }
- ];
+    url: 'https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/EditableFeatures3D/FeatureServer/1',
+  },
+];
 
 @NgModule({
   declarations: [AppComponent, EsriMapComponent, CloseComponent],
@@ -87,22 +83,18 @@ const sceneLayers: esri.FeatureLayerProperties[] = [
       styleUrl: './assets/themes/light-blue/main.css',
     }),
     FormsModule,
-    ReactiveFormsModule,
-    HttpClientModule,
     BrowserAnimationsModule,
-    NzRadioModule,
-    NzIconModule,
-    NzInputModule,
-    NzAutocompleteModule,
-    NzButtonModule,
-    NzModalModule,
+    HttpClientModule,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatSnackBarModule,
     MatIconModule,
-    MatMenuModule,
+    MatTooltipModule,
+    NzIconModule,
+    NzModalModule,
+    ReactiveFormsModule,
   ],
   providers: [{ provide: NZ_I18N, useValue: zh_CN }],
   bootstrap: [AppComponent],

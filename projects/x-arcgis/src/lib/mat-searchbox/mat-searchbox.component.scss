@@ -1,0 +1,15 @@
+$color: #fff;
+
+mat-icon,
+mat-label,
+input {
+  color: $color;
+}
+
+:host::ng-deep {
+  .mat-form-field-outline,
+  .mat-form-field-underline {
+    color: $color;
+    background-color: $color;
+  }
+}

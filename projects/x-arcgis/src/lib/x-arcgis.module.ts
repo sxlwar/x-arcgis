@@ -1,8 +1,17 @@
+import { NzAutocompleteModule } from 'ng-zorro-antd/auto-complete';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzRadioModule } from 'ng-zorro-antd/radio';
+
 import { CommonModule } from '@angular/common';
 import { HttpClientJsonpModule, HttpClientModule } from '@angular/common/http';
 import { ModuleWithProviders, NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,7 +31,13 @@ import { DynamicFormFieldComponent } from './dynamic-form-field/dynamic-form-fie
 import { DynamicFormComponent } from './dynamic-form/dynamic-form.component';
 import { FormEditComponent } from './form-edit/form-edit.component';
 import { MapComponent } from './map/map.component';
+import { XArcgisMatDrawToolbarComponent } from './mat-draw-toolbar/mat-draw-toolbar.component';
+import { MatSearchboxComponent } from './mat-searchbox/mat-searchbox.component';
 import { ConfigOption } from './model';
+import {
+    XArcgisNgZorroDrawToolbarComponent
+} from './ng-zorro-draw-toolbar/ng-zorro-draw-toolbar.component';
+import { NgZorroSearchboxComponent } from './ng-zorro-searchbox/ng-zorro-searchbox.component';
 import { ControlTypePipe } from './pipes/control-type.pipe';
 import { X_ARCGIS_CONFIG } from './providers';
 import { DynamicFormFieldService } from './providers/dynamic-form.service';
@@ -45,7 +60,11 @@ import { FieldKeyValidatorDirective } from './validators';
     ControlTypePipe,
     FieldKeyValidatorDirective,
     SideNavSwitcherComponent,
-    ThemePickerComponent
+    ThemePickerComponent,
+    XArcgisMatDrawToolbarComponent,
+    XArcgisNgZorroDrawToolbarComponent,
+    NgZorroSearchboxComponent,
+    MatSearchboxComponent,
   ],
   imports: [
     BrowserAnimationsModule,
@@ -53,7 +72,9 @@ import { FieldKeyValidatorDirective } from './validators';
     FormsModule,
     HttpClientJsonpModule,
     HttpClientModule,
+    MatAutocompleteModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -67,18 +88,30 @@ import { FieldKeyValidatorDirective } from './validators';
     MatTableModule,
     MatTooltipModule,
     MatTreeModule,
+    NzAutocompleteModule,
+    NzButtonModule,
+    NzIconModule,
+    NzInputModule,
+    NzModalModule,
+    NzRadioModule,
     ReactiveFormsModule,
   ],
-  exports: [MapComponent, SidenavComponent, ThemePickerComponent],
+  exports: [
+    MapComponent,
+    SidenavComponent,
+    ThemePickerComponent,
+    XArcgisMatDrawToolbarComponent,
+    XArcgisNgZorroDrawToolbarComponent,
+    NgZorroSearchboxComponent,
+    MatSearchboxComponent,
+  ],
   providers: [DynamicFormFieldService],
 })
 export class XArcgisModule {
-  static forRoot(config: ConfigOption): ModuleWithProviders<XArcgisModule> { 
+  static forRoot(config: ConfigOption): ModuleWithProviders<XArcgisModule> {
     return {
       ngModule: XArcgisModule,
-      providers: [
-        { provide: X_ARCGIS_CONFIG, useValue: config },
-      ]
-    }
+      providers: [{ provide: X_ARCGIS_CONFIG, useValue: config }],
+    };
   }
 }
