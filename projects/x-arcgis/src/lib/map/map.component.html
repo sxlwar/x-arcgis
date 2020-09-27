@@ -7,3 +7,7 @@
 <div *ngIf="!!searchObs && !(drawObs | async) && sceneType === '2D'" [hidden]="mapUnloaded" class="search-box">
   <ng-content select="[x-arcgis-searchbox]"></ng-content>
 </div>
+
+<div *ngIf="sceneType === '2D'" class="floor">
+  <x-arcgis-floor></x-arcgis-floor>
+</div>

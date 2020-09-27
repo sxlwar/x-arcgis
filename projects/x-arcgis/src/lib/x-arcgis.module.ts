@@ -47,6 +47,7 @@ import { ThemePickerComponent } from './theme-picker/theme-picker.component';
 import { TreeFormComponent } from './tree-form/tree-form.component';
 import { TreeComponent } from './tree/tree.component';
 import { FieldKeyValidatorDirective } from './validators';
+import { FloorComponent } from './floor/floor.component';
 
 @NgModule({
   declarations: [
@@ -65,6 +66,7 @@ import { FieldKeyValidatorDirective } from './validators';
     XArcgisNgZorroDrawToolbarComponent,
     NgZorroSearchboxComponent,
     MatSearchboxComponent,
+    FloorComponent,
   ],
   imports: [
     BrowserAnimationsModule,

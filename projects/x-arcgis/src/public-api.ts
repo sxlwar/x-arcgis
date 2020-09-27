@@ -13,3 +13,4 @@ export * from './lib/mat-searchbox/mat-searchbox.component';
 export * from './lib/theme-picker/theme-picker.component';
 export * from './lib/sidenav/sidenav.component';
 export * from './lib/side-nav-switcher/side-nav-switcher.component';
+export * from './lib/floor/floor.component';

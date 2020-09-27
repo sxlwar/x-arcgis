@@ -26,6 +26,12 @@ $bottom-space: 15px;
   left: $left-space;
 }
 
+.floor {
+  position: absolute;
+  right: $right-space;
+  bottom: $bottom-space;
+}
+
 :host::ng-deep {
   .esri-editor__content-group {
     width: 90%;
