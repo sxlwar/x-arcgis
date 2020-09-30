@@ -1,4 +1,3 @@
-import { dialog } from 'esri/identity/IdentityManager';
 import { NzModalService } from 'ng-zorro-antd/modal';
 import { iif, Observable, of, Subject } from 'rxjs';
 import { map, startWith, take } from 'rxjs/operators';
@@ -7,13 +6,22 @@ import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/c
 import { FormControl } from '@angular/forms';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import {
-    Address, BaseMapConfig, DrawService, GeometryType, SceneType, SearchService,
-    WebComponentService, XArcgisTreeNode
+  Address,
+  BaseMapConfig,
+  DrawService,
+  FloorOperateResult,
+  GeometryType,
+  SceneType,
+  SearchService,
+  WebComponentService,
+  XArcgisTreeNode,
 } from '@x-arcgis';
+import { NzMessageService } from 'ng-zorro-antd/message';
 
 import { ApiService } from '../providers/api.service';
 
 import esri = __esri;
+
 @Component({
   selector: 'close-icon',
   template: '<i nz-icon nzType="close" nzTheme="outline" (click)="onClick()"></i>',
@@ -123,7 +131,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     private modalService: NzModalService,
     private webComponentService: WebComponentService,
     private apiService: ApiService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private message: NzMessageService
   ) {}
 
   ngOnInit() {
@@ -142,7 +151,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         }
       });
 
-      //? can use ng-zorro modal as well; 
+      //? can use ng-zorro modal as well;
       // this.modalService.confirm({
       //   nzTitle: '<i>信息提示?</i>',
       //   nzContent: '<b>确定要退出编辑吗？</b>',
@@ -181,6 +190,25 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   onDraw(event: GeometryType): void {
     if (event !== this.draw.value) {
       this.draw.setValue(event);
+    }
+  }
+
+  onFloorOperated(event: FloorOperateResult) {
+    const res2Msg = {
+      addFeatures: '楼层添加',
+      deleteFeatures: '楼层删除',
+      updateFeatures: '楼层更新',
+    };
+    let msg = res2Msg[event.type];
+
+    if (!msg) {
+      return;
+    }
+
+    if (event.success) {
+      this.message.success(msg + '成功');
+    } else {
+      this.message.error(msg + '失败');
     }
   }
 

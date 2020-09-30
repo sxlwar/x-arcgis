@@ -9,5 +9,5 @@
 </div>
 
 <div *ngIf="sceneType === '2D'" class="floor">
-  <x-arcgis-floor></x-arcgis-floor>
+  <ng-content select="[x-arcgis-floor]"></ng-content>
 </div>

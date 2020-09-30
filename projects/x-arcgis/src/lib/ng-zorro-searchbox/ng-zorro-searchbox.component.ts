@@ -13,7 +13,7 @@ import { Address } from '../model';
   styleUrls: ['./ng-zorro-searchbox.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NgZorroSearchboxComponent implements OnInit {
+export class XArcgisNgZorroSearchboxComponent implements OnInit {
   @Input('control') search: FormControl;
 
   @Input('options') listOfOption: Observable<Address>;

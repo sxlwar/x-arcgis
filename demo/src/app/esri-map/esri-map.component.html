@@ -36,6 +36,13 @@
     [options]="listOfOption"
     x-arcgis-searchbox
   ></x-arcgis-mat-searchbox>
+
+  <!--? angular-material style floor-->
+  <x-arcgis-mat-floor
+    x-arcgis-floor
+    [floors]="['Z1', 'F1', 'F2']"
+    (floorOperated)="onFloorOperated($event)"
+  ></x-arcgis-mat-floor>
 </x-arcgis-map>
 
 <ng-template #dialogTpl>

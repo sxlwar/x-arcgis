@@ -13,7 +13,7 @@ import { Address } from '../model';
   styleUrls: ['./mat-searchbox.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MatSearchboxComponent implements OnInit {
+export class XArcgisMatSearchboxComponent implements OnInit {
   @Input('control') search: FormControl;
 
   @Input('options') listOfOption: Observable<Address>;

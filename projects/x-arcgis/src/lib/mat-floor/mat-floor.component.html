@@ -1,0 +1,27 @@
+<section class="no-bottom-radius">
+  <button mat-icon-button [disabled]="calculating" (click)="addGraphic()">
+    <mat-icon>add</mat-icon>
+  </button>
+  <button mat-icon-button [disabled]="calculating" (click)="removeGraphic()">
+    <mat-icon>remove</mat-icon>
+  </button>
+</section>
+
+<mat-button-toggle-group
+  name="floor"
+  [disabled]="calculating"
+  aria-label="floor"
+  [ngClass]="{ 'no-bottom-radius': indexes.length > 1 }"
+  class="floors no-top-radius"
+>
+  <mat-button-toggle *ngFor="let item of floors" [value]="item" (click)="setFloor(item)">{{ item }}</mat-button-toggle>
+</mat-button-toggle-group>
+
+<section *ngIf="indexes.length > 1" class="no-top-radius">
+  <button mat-icon-button (click)="highlightPre()" [disabled]="calculating">
+    <mat-icon>keyboard_arrow_left</mat-icon>
+  </button>
+  <button mat-icon-button (click)="highlightNext()" [disabled]="calculating">
+    <mat-icon>keyboard_arrow_right</mat-icon>
+  </button>
+</section>

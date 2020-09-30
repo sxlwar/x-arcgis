@@ -32,12 +32,12 @@ import { DynamicFormComponent } from './dynamic-form/dynamic-form.component';
 import { FormEditComponent } from './form-edit/form-edit.component';
 import { MapComponent } from './map/map.component';
 import { XArcgisMatDrawToolbarComponent } from './mat-draw-toolbar/mat-draw-toolbar.component';
-import { MatSearchboxComponent } from './mat-searchbox/mat-searchbox.component';
+import { XArcgisMatSearchboxComponent } from './mat-searchbox/mat-searchbox.component';
 import { ConfigOption } from './model';
 import {
     XArcgisNgZorroDrawToolbarComponent
 } from './ng-zorro-draw-toolbar/ng-zorro-draw-toolbar.component';
-import { NgZorroSearchboxComponent } from './ng-zorro-searchbox/ng-zorro-searchbox.component';
+import { XArcgisNgZorroSearchboxComponent } from './ng-zorro-searchbox/ng-zorro-searchbox.component';
 import { ControlTypePipe } from './pipes/control-type.pipe';
 import { X_ARCGIS_CONFIG } from './providers';
 import { DynamicFormFieldService } from './providers/dynamic-form.service';
@@ -47,26 +47,26 @@ import { ThemePickerComponent } from './theme-picker/theme-picker.component';
 import { TreeFormComponent } from './tree-form/tree-form.component';
 import { TreeComponent } from './tree/tree.component';
 import { FieldKeyValidatorDirective } from './validators';
-import { FloorComponent } from './floor/floor.component';
+import { XArcgisMatFloorComponent } from './mat-floor/mat-floor.component';
 
 @NgModule({
   declarations: [
+    ControlTypePipe,
     DynamicFormComponent,
     DynamicFormFieldComponent,
+    FieldKeyValidatorDirective,
+    FormEditComponent,
     MapComponent,
+    SideNavSwitcherComponent,
     SidenavComponent,
+    ThemePickerComponent,
     TreeComponent,
     TreeFormComponent,
-    FormEditComponent,
-    ControlTypePipe,
-    FieldKeyValidatorDirective,
-    SideNavSwitcherComponent,
-    ThemePickerComponent,
     XArcgisMatDrawToolbarComponent,
+    XArcgisMatFloorComponent,
+    XArcgisMatSearchboxComponent,
     XArcgisNgZorroDrawToolbarComponent,
-    NgZorroSearchboxComponent,
-    MatSearchboxComponent,
-    FloorComponent,
+    XArcgisNgZorroSearchboxComponent,
   ],
   imports: [
     BrowserAnimationsModule,
@@ -103,9 +103,10 @@ import { FloorComponent } from './floor/floor.component';
     SidenavComponent,
     ThemePickerComponent,
     XArcgisMatDrawToolbarComponent,
+    XArcgisMatFloorComponent,
+    XArcgisMatSearchboxComponent,
     XArcgisNgZorroDrawToolbarComponent,
-    NgZorroSearchboxComponent,
-    MatSearchboxComponent,
+    XArcgisNgZorroSearchboxComponent,
   ],
   providers: [DynamicFormFieldService],
 })

@@ -24,6 +24,7 @@ import { AppComponent } from './app.component';
 import { CloseComponent, EsriMapComponent } from './esri-map/esri-map.component';
 
 import esri = __esri;
+import { NzMessageModule } from 'ng-zorro-antd/message';
 registerLocaleData(zh);
 
 const baseLayers: esri.FeatureLayerProperties[] = [
@@ -93,6 +94,7 @@ const sceneLayers: esri.FeatureLayerProperties[] = [
     MatIconModule,
     MatTooltipModule,
     NzIconModule,
+    NzMessageModule,
     NzModalModule,
     ReactiveFormsModule,
   ],
